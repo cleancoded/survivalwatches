@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.6
 Requires PHP: 5.6
-Stable tag: 5.0.0
+Stable tag: 5.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,12 +126,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.0.0 - 2021-03-17 =
+= 5.1.0 - 2021-04-07 =
 
-* Add - Display time of last Stripe webhook in settings.
-* Add - wc_stripe_webhook_validate_user_agent filter to customize webhook user-agent validation.
-* Fix - Payment Request Buttons for Chinese provinces in Chrome.
-* Fix - Enable wc_stripe_send_stripe_receipt filter to send Stripe emails.
-* Fix - Check for more errors when attaching sources to customers.
+* Fix - Don't attempt to submit level 3 data for non-US merchants.
+* Fix - Hide Payment Request Buttons when guest checkout is disabled.
+* Fix - Match Payment Request states with WooCommerce states.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
