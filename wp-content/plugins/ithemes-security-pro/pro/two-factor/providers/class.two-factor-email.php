@@ -6,7 +6,7 @@
  *
  * @package Two_Factor
  */
-class Two_Factor_Email extends Two_Factor_Provider {
+class Two_Factor_Email extends Two_Factor_Provider implements ITSEC_Two_Factor_Provider_On_Boardable {
 
 	/**
 	 * The user meta token key.
@@ -48,6 +48,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return _x( 'Email', 'Provider Label', 'it-l10n-ithemes-security-pro' );
 	}
 
+	public function can_resend_code() {
+		return true;
+	}
+
 	/**
 	 * Generate the user token.
 	 *
@@ -58,7 +62,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function generate_token( $user_id ) {
 		$token = $this->get_code();
-		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
+		add_user_meta( $user_id, self::TOKEN_META_KEY, [
+			'hash' => wp_hash( $token ),
+			'time' => time(),
+		] );
 		return $token;
 	}
 
@@ -72,12 +79,30 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_token( $user_id, $token ) {
-		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
-		if ( wp_hash( $token ) !== $hashed_token ) {
-			$this->delete_token( $user_id );
-			return false;
+		$hashed = wp_hash( $token );
+		$tokens = get_user_meta( $user_id, self::TOKEN_META_KEY );
+
+		foreach ( $tokens as $row ) {
+			if ( ! is_array( $row ) ) {
+				delete_user_meta( $user_id, self::TOKEN_META_KEY, $row );
+
+				continue;
+			}
+
+			if ( $row['time'] + ( 15 * 60 ) < time() ) {
+				delete_user_meta( $user_id, self::TOKEN_META_KEY, $row );
+
+				continue;
+			}
+
+			if ( hash_equals( $hashed, $row['hash'] ) ) {
+				$this->delete_token( $user_id );
+
+				return true;
+			}
 		}
-		return true;
+
+		return false;
 	}
 
 	/**
@@ -96,14 +121,64 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User $user User object of the logged-in user.
+	 * @param bool    $is_signup
 	 */
-	public function generate_and_email_token( $user ) {
+	public function generate_and_email_token( $user, $is_signup = false ) {
 		$token = $this->generate_token( $user->ID );
 
-		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'it-l10n-ithemes-security-pro' ), get_bloginfo( 'name' ) ) );
-		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'it-l10n-ithemes-security-pro' ), $token ) );
-		wp_mail( $user->user_email, $subject, $message );
+		$nc = ITSEC_Core::get_notification_center();
+
+		$parsed = parse_url( site_url() );
+		$url = $parsed['host'];
+
+		if ( ! empty( $parsed['path'] ) ) {
+			$url .= $parsed['path'];
+		}
+
+		if ( $is_signup ) {
+			$subject = $nc->get_subject( 'two-factor-confirm-email' );
+			$message = $nc->get_message( 'two-factor-confirm-email' );
+		} else {
+			$subject = $nc->get_subject( 'two-factor-email' );
+			$message = $nc->get_message( 'two-factor-email' );
+		}
+
+		/* translators: 1: site URL, 2: email subject */
+		$subject = sprintf( __( '[%1$s] %2$s', 'it-l10n-ithemes-security-pro' ), $url, $subject );
+
+		$message = ITSEC_Lib::replace_tags( $message, array(
+			'username'     => $user->user_login,
+			'display_name' => $user->display_name,
+			'site_title'   => get_bloginfo( 'name', 'display' ),
+		) );
+
+		$mail = $nc->mail();
+		$mail->set_recipients( array( $user->user_email ) );
+		$mail->set_subject( $subject, false );
+		$mail->add_header(
+			$is_signup ? esc_html__( 'Finish Setting Up Two-Factor', 'it-l10n-ithemes-security-pro' ) : esc_html__( 'Continue Logging On', 'it-l10n-ithemes-security-pro' ),
+			'',
+			true
+		);
+		$mail->add_text( $message );
+
+		if ( $session = ITSEC_Core::get_login_interstitial()->get_current_session() ) {
+			ITSEC_Core::get_login_interstitial()->initialize_same_browser( $session );
+			$mail->add_large_button(
+				esc_html__( 'Continue', 'it-l10n-ithemes-security-pro' ),
+				ITSEC_Core::get_login_interstitial()->get_async_action_url( $session, '2fa-verify-email' )
+			);
+		}
+
+		$mail->add_small_code( $token );
+		$mail->add_user_footer();
+
+		$nc->send( 'two-factor-email', $mail );
+	}
+
+	public function pre_render_authentication_page( $user ) {
+		$this->generate_and_email_token( $user );
 	}
 
 	/**
@@ -114,12 +189,12 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		$this->generate_and_email_token( $user );
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		$subject = ITSEC_Core::get_notification_center()->get_subject( 'two-factor-email' );
 		?>
-		<p style="padding-bottom:1em;"><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'it-l10n-ithemes-security-pro' ); ?></p>
+		<p style="padding-bottom:1em;"><?php printf( esc_html__( 'An Authentication Code has been sent to the email address associated with your account. Look for an email with "%s" in the subject line.', 'it-l10n-ithemes-security-pro' ), $subject ); ?></p>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'it-l10n-ithemes-security-pro' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'it-l10n-ithemes-security-pro' ); ?></label>
 			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
@@ -145,7 +220,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+		return $this->validate_token( $user->ID, trim( $_REQUEST['two-factor-email-code'] ) );
 	}
 
 	/**
@@ -180,4 +255,72 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		echo '<p class="description">' . __( 'Time-sensitive codes are supplied via email to the email address associated with the user\'s account. Note: This WordPress site must support sending emails for this method to work (for example, sending WordPress-generated emails such as password reset and new account emails).', 'it-l10n-ithemes-security-pro' ) . '</p>';
 	}
 
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_dashicon() {
+		return 'email-alt';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_label() {
+		return esc_html__( 'Email', 'it-l10n-ithemes-security-pro' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_description() {
+		return esc_html__( 'Receive an email every time you login.', 'it-l10n-ithemes-security-pro' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function has_on_board_configuration() {
+		return false;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_config( WP_User $user ) {
+		return array();
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function handle_ajax_on_board( WP_User $user, array $data ) {
+		switch ( $data['itsec_method'] ) {
+			case 'verify-email-code':
+				if ( ! isset( $data['itsec_email_code'] ) ) {
+					wp_send_json_error( array(
+						'message' => esc_html__( 'Invalid Request Format', 'it-l10n-ithemes-security-pro' ),
+					) );
+				}
+
+				if ( $this->validate_token( $user->ID, $data['itsec_email_code'] ) ) {
+					wp_send_json_success( array(
+						'message' => esc_html__( 'Success!', 'it-l10n-ithemes-security-pro' ),
+					) );
+				} else {
+					$this->generate_and_email_token( $user, true );
+
+					wp_send_json_error( array(
+						'message' => esc_html__( 'The code you supplied is not valid. Please check your email for a new code.', 'it-l10n-ithemes-security-pro' ),
+					) );
+				}
+				break;
+			case 'send-email-code':
+				$this->generate_and_email_token( $user, true );
+
+				wp_send_json_success( array(
+					'message' => esc_html__( 'Email sent!', 'it-l10n-ithemes-security-pro' ),
+				) );
+				break;
+		}
+	}
 }

@@ -19,10 +19,16 @@ final class ITSEC_Recaptcha_Settings_Page extends ITSEC_Module_Settings_Page {
 
 	}
 
+	public function enqueue_scripts_and_styles() {
+		wp_enqueue_script( 'itsec-recaptcha-settings-page', plugins_url( 'js/settings-page.js', __FILE__ ), array( 'jquery', 'itsec-util' ), ITSEC_Core::get_plugin_build(), true );
+	}
+
 	protected function render_settings( $form ) {
 		$validator = ITSEC_Modules::get_validator( $this->id );
 		$languages = $validator->get_valid_languages();
 		$types = $validator->get_valid_types_with_description();
+		$positions = $validator->get_valid_invisible_positions();
+		$locations = $validator->get_valid_v3_include_locations();
 
 ?>
 	<table class="form-table">
@@ -54,6 +60,40 @@ final class ITSEC_Recaptcha_Settings_Page extends ITSEC_Module_Settings_Page {
 				<label for="itsec-recaptcha-secret_key"><?php printf( __( 'To use this feature you need a free secret key and secret key from <a href="%s" target="_blank" rel="noopener noreferrer">Google reCAPTCHA</a>.', 'it-l10n-ithemes-security-pro' ), 'https://www.google.com/recaptcha/admin' ); ?></label>
 			</td>
 		</tr>
+		<tr class="itsec-recaptcha-hide-for-type itsec-recaptcha-hide-for-type--type-v3">
+			<th scope="row"><label for="itsec-recaptcha-gdpr"><?php _e( 'Enable GDPR Opt-in', 'it-l10n-ithemes-security-pro' ); ?></label></th>
+			<td>
+				<?php $form->add_checkbox( 'gdpr' ); ?>
+				<p class="description"><?php _e( 'To assist with GDPR compliance, iThemes Security can prompt the user to accept Google\'s Privacy Policy and Terms of Service before loading the reCAPTCHA API.', 'it-l10n-ithemes-security-pro' ); ?></p>
+				<p class="description"><?php  esc_html_e( 'Note: This is not available when using reCAPTCHA v3 since the API is always loaded on every request.', 'it-l10n-ithemes-security-pro' )?></p>
+			</td>
+		</tr>
+		<tr class="itsec-recaptcha-hide-for-type itsec-recaptcha-hide-for-type--type-v3">
+			<th scope="row"><label for="itsec-recaptcha-on_page_opt_in"><?php _e( 'On Page Opt-in', 'it-l10n-ithemes-security-pro' ); ?></label></th>
+			<td>
+				<?php $form->add_checkbox( 'on_page_opt_in' ); ?>
+				<p class="description"><?php _e( 'Allow users to opt-in to reCAPTCHA without refreshing the page.', 'it-l10n-ithemes-security-pro' ); ?></p>
+			</td>
+		</tr>
+		<tr class="itsec-recaptcha-show-for-type itsec-recaptcha-show-for-type--type-v3">
+			<th scope="row"><label for="itsec-recaptcha-v3_threshold"><?php esc_html_e( 'Block Threshold', 'it-l10n-ithemes-security-pro' ); ?></label></th>
+			<td>
+				<?php $form->add_html5_input( 'v3_threshold', 'number', array( 'min' => '0.0', 'max' => '1.0', 'step' => '0.01' ) ); ?>
+				<p class="description">
+					<?php esc_html_e( 'Google reCAPTCHA assigns a score between 0 and 1 describing the legitimacy of the request. A score of 1 is most likely a human, and a score of 0 is most likely a bot.', 'it-l10n-ithemes-security-pro' ) ?>
+					<?php printf( esc_html__( 'Google recommends using a default value of 0.5 and to adjust the threshold based off the score distribution in the %1$sreCAPTCHA Developer Console%2$s.', 'it-l10n-ithemes-security-pro' ), '<a href="https://www.google.com/recaptcha/admin" target="_blank">', '</a>' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr class="itsec-recaptcha-show-for-type itsec-recaptcha-show-for-type--type-v3">
+			<th scope="row"><label for="itsec-recaptcha-v3_include_location"><?php _e( 'Include Script', 'it-l10n-ithemes-security-pro' ); ?></label></th>
+			<td>
+				<?php $form->add_select( 'v3_include_location', $locations ); ?>
+				<p class="description">
+					<?php esc_html_e( 'Specify where the reCAPTCHA script should be loaded. Google recommends including the script on all pages to increase accuracy.', 'it-l10n-ithemes-security-pro' ); ?>
+				</p>
+			</td>
+		</tr>
 		<tr>
 			<th scope="row"><label for="itsec-recaptcha-login"><?php _e( 'Use on Login', 'it-l10n-ithemes-security-pro' ); ?></label></th>
 			<td>
@@ -66,6 +106,13 @@ final class ITSEC_Recaptcha_Settings_Page extends ITSEC_Module_Settings_Page {
 			<td>
 				<?php $form->add_checkbox( 'register' ); ?>
 				<label for="itsec-recaptcha-register"><?php _e( 'Use reCAPTCHA for user registration.', 'it-l10n-ithemes-security-pro' ); ?></label>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="itsec-recaptcha-reset_pass"><?php _e( 'Use on Reset Password', 'it-l10n-ithemes-security-pro' ); ?></label></th>
+			<td>
+				<?php $form->add_checkbox( 'reset_pass' ); ?>
+				<label for="itsec-recaptcha-reset_pass"><?php _e( 'Use reCAPTCHA for password resets.', 'it-l10n-ithemes-security-pro' ); ?></label>
 			</td>
 		</tr>
 		<tr>
@@ -83,12 +130,24 @@ final class ITSEC_Recaptcha_Settings_Page extends ITSEC_Module_Settings_Page {
 				<label for="itsec-recaptcha-language"><?php _e( 'Select the language for the reCAPTCHA box (if autodetect is not working).', 'it-l10n-ithemes-security-pro' ); ?></label>
 			</td>
 		</tr>
-		<tr>
+		<tr class="itsec-recaptcha-show-for-type itsec-recaptcha-show-for-type--type-v2">
 			<th scope="row"><label for="itsec-recaptcha-theme"><?php _e( 'Use Dark Theme', 'it-l10n-ithemes-security-pro' ); ?></label></th>
 			<td>
 				<?php $form->add_checkbox( 'theme' ); ?>
 				<label for="itsec-recaptcha-theme"><?php _e( 'Use dark theme.', 'it-l10n-ithemes-security-pro' ); ?></label>
 				<p class="description"><?php esc_html_e( 'Note: Dark theme is only compatible with reCAPTCHA V2 and not Invisible reCAPTCHA.', 'it-l10n-ithemes-security-pro' ); ?></p>
+			</td>
+		</tr>
+		<tr class="itsec-recaptcha-show-for-type itsec-recaptcha-hide-for-type--type-invisible">
+			<th scope="row"><label for="itsec-recaptcha-invis_position"><?php esc_html_e( 'reCAPTCHA Position', 'it-l10n-ithemes-security-pro' ); ?></label></th>
+			<td>
+				<?php foreach ( $positions as $position => $label ) : ?>
+					<p>
+						<?php $form->add_radio( 'invis_position', $position ); ?>
+						<label for="itsec-recaptcha-invis_position-<?php echo esc_attr( $position ); ?>"><?php echo $label; ?></label>
+					</p>
+				<?php endforeach; ?>
+				<p class="description"><?php esc_html_e( 'Note: reCAPTCHA Position is only compatible with Invisible reCAPTCHA and not reCAPTCHA V2.', 'it-l10n-ithemes-security-pro' ); ?></p>
 			</td>
 		</tr>
 		<tr>

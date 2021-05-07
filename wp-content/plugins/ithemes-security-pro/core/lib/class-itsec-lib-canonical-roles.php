@@ -1,6 +1,42 @@
 <?php
 
 final class ITSEC_Lib_Canonical_Roles {
+
+	private static $canonical = [
+		'super-admin',
+		'administrator',
+		'editor',
+		'author',
+		'contributor',
+		'subscriber',
+	];
+
+	/**
+	 * Get a list of all the canonical roles.
+	 *
+	 * @param bool $include_super_admin Include the super admin "role".
+	 *
+	 * @return string[]
+	 */
+	public static function get_canonical_roles( $include_super_admin = true ) {
+		$canonical = self::$canonical;
+
+		if ( ! $include_super_admin ) {
+			unset( $canonical[0] );
+			$canonical = array_values( $canonical );
+		}
+
+		return $canonical;
+	}
+
+	/**
+	 * Check if a given role is at least as or equally as powerful as a given role.
+	 *
+	 * @param string $min_role
+	 * @param string $role
+	 *
+	 * @return bool
+	 */
 	public static function is_canonical_role_at_least( $min_role, $role ) {
 		$roles = array(
 			'super-admin'   => 6,
@@ -12,17 +48,25 @@ final class ITSEC_Lib_Canonical_Roles {
 			''              => 0,
 		);
 
-		if ( ! isset( $roles[$role] ) || ! isset( $roles[$min_role] ) ) {
+		if ( ! isset( $roles[ $role ] ) || ! isset( $roles[ $min_role ] ) ) {
 			return false;
 		}
 
-		if ( $roles[$role] >= $roles[$min_role] ) {
+		if ( $roles[ $role ] >= $roles[ $min_role ] ) {
 			return true;
 		}
 
 		return false;
 	}
 
+	/**
+	 * Check if a user's role is at least as or equally as powerful as a given role.
+	 *
+	 * @param string                   $role
+	 * @param int|string|WP_User|false $user
+	 *
+	 * @return bool
+	 */
 	public static function is_user_at_least( $role, $user = false ) {
 		$roles = array(
 			'super-admin'   => 6,
@@ -34,19 +78,28 @@ final class ITSEC_Lib_Canonical_Roles {
 			''              => 0,
 		);
 
-		if ( ! isset( $roles[$role] ) ) {
+		if ( ! isset( $roles[ $role ] ) ) {
 			return false;
 		}
 
 		$user_role = self::get_user_role( $user );
 
-		if ( $roles[$user_role] >= $roles[$role] ) {
+		if ( $roles[ $user_role ] >= $roles[ $role ] ) {
 			return true;
 		}
 
 		return false;
 	}
 
+	/**
+	 * Retrieve the default WordPress role that would be associated with the given capabilities list.
+	 *
+	 * This checks the caps list for containing at least one of the unique capabilities from each default role.
+	 *
+	 * @param string[] $caps
+	 *
+	 * @return int|string
+	 */
 	public static function get_role_from_caps( $caps ) {
 		if ( is_string( $caps ) ) {
 			$caps = array( $caps );
@@ -65,6 +118,13 @@ final class ITSEC_Lib_Canonical_Roles {
 		return '';
 	}
 
+	/**
+	 * Retrieve a user's equivalent default WordPress role from their capabilities.
+	 *
+	 * @param bool $user
+	 *
+	 * @return int|string
+	 */
 	public static function get_user_role( $user = false ) {
 		$user = ITSEC_Lib::get_user( $user );
 
@@ -72,7 +132,7 @@ final class ITSEC_Lib_Canonical_Roles {
 			return '';
 		}
 
-		if ( is_multisite() && is_super_admin( $user->ID ) ) {
+		if ( is_multisite() && ITSEC_Lib::is_super_admin( $user ) ) {
 			return 'super-admin';
 		}
 
@@ -89,6 +149,113 @@ final class ITSEC_Lib_Canonical_Roles {
 		return '';
 	}
 
+	/**
+	 * Get the canonical role from any WordPress role.
+	 *
+	 * @param string $role
+	 *
+	 * @return string
+	 */
+	public static function get_canonical_role_from_role( $role ) {
+		// Handle invalid roles or roles that do not exist anymore.
+		if ( ! $role_object = wp_roles()->get_role( $role ) ) {
+			return '';
+		}
+
+		return self::get_role_from_caps( array_keys( array_filter( $role_object->capabilities ) ) );
+	}
+
+	/**
+	 * Retrieve a canonical role for a user and a role.
+	 *
+	 * @param string  $role
+	 * @param WP_User $user
+	 *
+	 * @return string
+	 */
+	public static function get_canonical_role_from_role_and_user( $role, $user ) {
+		$user = ITSEC_Lib::get_user( $user );
+
+		if ( is_multisite() && ITSEC_Lib::is_super_admin( $user ) ) {
+			return 'super-admin';
+		}
+
+		if ( empty( $role ) ) {
+			$role_caps = array();
+		} else {
+			$role_caps = array_keys( array_filter( wp_roles()->get_role( $role )->capabilities ) );
+		}
+
+		$user_caps = array();
+
+		if ( isset( $user->caps ) ) {
+			$wp_roles = wp_roles();
+
+			foreach ( $user->caps as $cap => $has ) {
+				if ( $has && ! $wp_roles->is_role( $cap ) ) {
+					$user_caps[] = $cap;
+				}
+			}
+		}
+
+		return self::get_role_from_caps( array_merge( $role_caps, $user_caps ) );
+	}
+
+	/**
+	 * Gets all canonical roles of at least the given canonical role capability.
+	 *
+	 * @example ::get_canonical_roles_of_at_least( 'editor' ) // [ 'administrator', 'editor' ]
+	 *
+	 * @param string $minimum
+	 *
+	 * @return string[]
+	 */
+	public static function get_canonical_roles_of_at_least( $minimum ) {
+		$at_least = [];
+
+		foreach ( self::$canonical as $role ) {
+			$at_least[] = $role;
+
+			if ( $role === $minimum ) {
+				break;
+			}
+		}
+
+		return $at_least;
+	}
+
+	/**
+	 * Get all users that have the given canonical role.
+	 *
+	 * @param string|string[] $canonical
+	 * @param array           $additional_args
+	 *
+	 * @return WP_User[]
+	 */
+	public static function get_users_with_canonical_role( $canonical, $additional_args = array() ) {
+
+		$canonical = (array) $canonical;
+
+		$roles = array();
+
+		foreach ( wp_roles()->roles as $role => $_ ) {
+			if ( in_array( self::get_canonical_role_from_role( $role ), $canonical, true ) ) {
+				$roles[] = $role;
+			}
+		}
+
+		if ( empty( $roles ) ) {
+			return array();
+		}
+
+		return get_users( array_merge( $additional_args, array( 'role__in' => $roles ) ) );
+	}
+
+	/**
+	 * Get a list of all of the capabilities that are unique to each role.
+	 *
+	 * @return array
+	 */
 	public static function get_unique_capabilities() {
 		return array(
 			'administrator' => array(
@@ -120,7 +287,7 @@ final class ITSEC_Lib_Canonical_Roles {
 				'update_plugins',
 				'update_themes',
 			),
-			'editor' => array(
+			'editor'        => array(
 				'delete_others_pages',
 				'delete_others_posts',
 				'delete_pages',
@@ -146,25 +313,30 @@ final class ITSEC_Lib_Canonical_Roles {
 				'read_private_posts',
 				'unfiltered_html',
 			),
-			'author' => array(
+			'author'        => array(
 				'delete_published_posts',
 				'edit_published_posts',
 				'level_2',
 				'publish_posts',
 				'upload_files',
 			),
-			'contributor' => array(
+			'contributor'   => array(
 				'delete_posts',
 				'edit_posts',
 				'level_1',
 			),
-			'subscriber' => array(
+			'subscriber'    => array(
 				'level_0',
 				'read',
 			),
 		);
 	}
 
+	/**
+	 * Get a list of all of the capabilities each default WordPress role has.
+	 *
+	 * @return array
+	 */
 	public static function get_capabilities() {
 		return array(
 			'administrator' => array(
@@ -230,7 +402,7 @@ final class ITSEC_Lib_Canonical_Roles {
 				'update_themes',
 				'upload_files',
 			),
-			'editor' => array(
+			'editor'        => array(
 				'delete_others_pages',
 				'delete_others_posts',
 				'delete_pages',
@@ -266,7 +438,7 @@ final class ITSEC_Lib_Canonical_Roles {
 				'unfiltered_html',
 				'upload_files',
 			),
-			'author' => array(
+			'author'        => array(
 				'delete_posts',
 				'delete_published_posts',
 				'edit_posts',
@@ -278,14 +450,14 @@ final class ITSEC_Lib_Canonical_Roles {
 				'read',
 				'upload_files',
 			),
-			'contributor' => array(
+			'contributor'   => array(
 				'delete_posts',
 				'edit_posts',
 				'level_0',
 				'level_1',
 				'read',
 			),
-			'subscriber' => array(
+			'subscriber'    => array(
 				'level_0',
 				'read',
 			),

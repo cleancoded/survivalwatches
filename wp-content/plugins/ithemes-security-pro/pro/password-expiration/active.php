@@ -1,6 +1,5 @@
 <?php
 
-// Set up Password Scheduling
-require_once( 'class-itsec-password-expiration.php' );
-$itsec_password_expiration = new ITSEC_Password_Expiration();
-$itsec_password_expiration->run();
+require_once( __DIR__ . '/class-itsec-password-expiration.php' );
+
+return 'ITSEC_Password_Expiration';

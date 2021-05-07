@@ -1,5 +1,8 @@
 <?php
 
+use iThemesSecurity\User_Groups\Matcher;
+use iThemesSecurity\User_Groups;
+
 final class ITSEC_Application_Passwords_Util {
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
 
@@ -341,5 +344,26 @@ final class ITSEC_Application_Passwords_Util {
 			default:
 				return 'ERROR: Not Set';
 		}
+	}
+
+	/**
+	 * Is Application Passwords available for the given user.
+	 *
+	 * @param int|WP_User $user
+	 *
+	 * @return bool
+	 */
+	public static function available_for_user( $user ) {
+		if ( ! $user = ITSEC_Lib::get_user( $user ) ) {
+			return false;
+		}
+
+		/** @var User_Groups\Matcher $matcher */
+		$matcher = ITSEC_Modules::get_container()->get( Matcher::class );
+
+		return $matcher->matches(
+			User_Groups\Match_Target::for_user( $user ),
+			ITSEC_Modules::get_setting( 'two-factor', 'application_passwords_group' )
+		);
 	}
 }

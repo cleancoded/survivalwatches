@@ -76,6 +76,9 @@ final class ITSEC_System_Tweaks {
 		return ITSEC_System_Tweaks_Config_Generators::filter_litespeed_server_config_modification( $modification );
 	}
 
+	/**
+	 * Block long URLs very early in the request cycle on the front-end.
+	 */
 	public function block_long_urls() {
 		if ( strlen( $_SERVER['REQUEST_URI'] ) <= 255 ) {
 			return;
@@ -94,6 +97,10 @@ final class ITSEC_System_Tweaks {
 		}
 
 		if ( strpos( $_SERVER['REQUEST_URI'], 'infinity=scrolling&action=infinite_scroll' ) ) {
+			return;
+		}
+
+		if ( $_SERVER['REQUEST_METHOD'] === 'GET' && isset( $GLOBALS['pagenow'], $_GET['action'] ) && 'wp-login.php' === $GLOBALS['pagenow'] ) {
 			return;
 		}
 

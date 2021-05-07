@@ -17,3 +17,14 @@
 .itsec-two-factor-requires-no-email-provider .itsec-notice-message {
 	margin: 0;
 }
+
+#itsec-two-factor-application_passwords_roles-container ul {
+	margin: 0;
+	padding-left: 0;
+}
+
+#itsec-two-factor-application_passwords_roles-container ul li,
+#itsec-two-factor-exclude_roles-container ul li,
+#itsec-two-factor-allow_remember_roles-container ul li {
+	list-style: none;
+}

@@ -41,6 +41,7 @@ final class ITSEC_Hide_Backend_Settings_Page extends ITSEC_Module_Settings_Page 
 
 ?>
 	<p><?php _e( 'Hides the login page (wp-login.php, wp-admin, admin and login) making it harder to find by automated attacks and making it easier for users unfamiliar with the WordPress platform.', 'it-l10n-ithemes-security-pro' ); ?></p>
+	<p><?php _e( 'The login page may be exposed by WordPress Core, Plugins, or Themes when printing links to the login page. For example Privacy Request Confirmations or front-end login forms. Hide Backend shouldn\'t be used as a substitute for Strong Passwords.', 'it-l10n-ithemes-security-pro' ) ?></p>
 <?php
 
 	}
@@ -84,13 +85,13 @@ final class ITSEC_Hide_Backend_Settings_Page extends ITSEC_Module_Settings_Page 
 					<p class="description"><em><?php _e( 'Note: The output is limited to alphanumeric characters, underscore (_) and dash (-). Special characters such as "." and "/" are not allowed and will be converted in the same manner as a post title. Please review your selection before logging out.', 'it-l10n-ithemes-security-pro' ); ?></em></p>
 				</td>
 			</tr>
-			<?php if ( get_site_option( 'users_can_register' ) ) : ?>
+			<?php if ( get_option( 'users_can_register' ) ) : ?>
 				<tr>
 					<th scope="row"><label for="itsec-hide-backend-register"><?php _e( 'Register Slug', 'it-l10n-ithemes-security-pro' ); ?></label></th>
 					<td>
 						<?php $form->add_text( 'register', array( 'class' => 'text code' ) ); ?>
 						<br />
-						<label for="itsec-hide-backend-register"><?php printf( __( 'Registration URL: %s', 'it-l10n-ithemes-security-pro' ), trailingslashit( get_option( 'siteurl' ) ) . '<span style="color: #4AA02C">' . sanitize_title( $settings['register'] ) . '</span>' ); ?></label>
+						<label for="itsec-hide-backend-register"><?php printf( __( 'Registration URL: %s', 'it-l10n-ithemes-security-pro' ), trailingslashit( get_option( 'siteurl' ) ) . '<span style="color: #4AA02C">' . esc_html( $settings['register'] ) . '</span>' ); ?></label>
 					</td>
 				</tr>
 			<?php endif; ?>

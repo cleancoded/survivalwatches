@@ -1,9 +1,9 @@
 "use strict";
 
-(function( $ ) {
+(function( $, eventBus ) {
 	var itsecImportExport = {
 		init: function() {
-			this.bindEvents();
+			itsecImportExport.bindEvents();
 
 			$( '#itsec-import-export-import-removed-selected-file' ).hide();
 
@@ -25,12 +25,28 @@
 				} );
 		},
 
+		modulesReloaded: function( _, initialResponse ) {
+			itsecImportExport.init();
+
+			if ( initialResponse ) {
+				itsecImportExport.handleImportResponse( initialResponse );
+			}
+		},
+
 		bindEvents: function() {
+
+			if ( itsecImportExport.bindEvents.bound ) {
+				return;
+			}
+
 			var $container = jQuery( '#wpcontent' );
 
 			$container.on( 'click', '#itsec-import-export-export', this.doExport );
 			$container.on( 'click', '#itsec-import-export-import', this.doImport );
 			$container.on( 'click', '#itsec-import-export-import-removed-selected-file', this.removeSelectedFile );
+			eventBus.on( 'modulesReloaded', itsecImportExport.modulesReloaded );
+
+			itsecImportExport.bindEvents.bound = true;
 		},
 
 		doExport: function( e ) {
@@ -49,7 +65,7 @@
 				'email':  $( '#itsec-import-export-email_address' ).val()
 			};
 
-			itsecSettingsPage.sendModuleAJAXRequest( 'import-export', data, itsecImportExport.handleExportResponse );
+			itsecUtil.sendModuleAJAXRequest( 'import-export', data, itsecImportExport.handleExportResponse );
 		},
 
 		handleExportResponse: function( results ) {
@@ -97,14 +113,14 @@
 
 				$('#itsec-import-export-settings_file').fileupload( 'send', data )
 					.always(function( result, textStatus, jqXHR ) {
-						itsecSettingsPage.processAjaxResponse( result, textStatus, jqXHR, 'import-export', 'handle_module_request', {method: 'import'}, itsecImportExport.handleImportResponse );
+						itsecUtil.processAjaxResponse( result, textStatus, jqXHR, 'import-export', 'handle_module_request', {method: 'import'}, itsecImportExport.handleImportResponse );
 					});
 			} else {
 				var data = {
 					'method': 'import'
 				};
 
-				itsecSettingsPage.sendModuleAJAXRequest( 'import-export', data, itsecImportExport.handleImportResponse );
+				itsecUtil.sendModuleAJAXRequest( 'import-export', data, itsecImportExport.handleImportResponse );
 			}
 		},
 
@@ -117,9 +133,10 @@
 				var message;
 
 				$.each( results.errors, function( index, error ) {
-					message = '<div class="error inline"><p><strong>' + error + '</strong></p></div>';
+					message = '<div class="notice notice-error notice-alt itsec-is-dismissible"><p>' + error + '</p></div>';
 					$('.itsec-import-export-import-results-wrapper').append( message );
 				} );
+				itsecSettingsPage.makeNoticesDismissible();
 			} else {
 				$('.itsec-import-export-import-results-wrapper').html( results.response );
 			}
@@ -142,4 +159,4 @@
 	$(document).ready(function() {
 		itsecImportExport.init();
 	});
-})( jQuery );
+})( jQuery,  window.itsecSettingsPage.events );

@@ -47,6 +47,8 @@ class Ithemes_Sync_Verb_ITSEC_Override_Two_Factor_User extends Ithemes_Sync_Verb
 			update_user_option( $user->ID, 'itsec_two_factor_override', $override, true );
 			update_user_option( $user->ID, 'itsec_two_factor_override_expires', $override_expires, true );
 
+			do_action( 'itsec_two_factor_override', $user, compact( 'override_expires' ) );
+
 			return $response;
 
 		} elseif ( $direction === 'remove' ) {

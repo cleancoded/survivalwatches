@@ -2,15 +2,19 @@
 
 
 final class ITSEC_Settings_Page {
-	private $version = 1.4;
+	private static $instance;
 
 	private $self_url = '';
+
+	/** @var ITSEC_Module_Settings_Page[] */
 	private $modules = array();
+
+	/** @var ITSEC_Settings_Page_Sidebar_Widget[] */
 	private $widgets = array();
 	private $translations = array();
 
 
-	public function __construct() {
+	private function __construct() {
 		add_action( 'itsec-settings-page-register-module', array( $this, 'register_module' ) );
 		add_action( 'itsec-settings-page-register-widget', array( $this, 'register_widget' ) );
 
@@ -43,6 +47,14 @@ final class ITSEC_Settings_Page {
 		}
 	}
 
+	public static function get_instance() {
+		if ( ! self::$instance ) {
+			self::$instance = new self;
+		}
+
+		return self::$instance;
+	}
+
 	public function add_settings_classes( $classes ) {
 		if ( ITSEC_Modules::get_setting( 'global', 'show_error_codes' ) ) {
 			$classes .= ' itsec-show-error-codes';
@@ -60,6 +72,8 @@ final class ITSEC_Settings_Page {
 	}
 
 	public function add_scripts() {
+		ITSEC_Lib::enqueue_util();
+
 		foreach ( $this->modules as $id => $module ) {
 			$module->enqueue_scripts_and_styles();
 		}
@@ -83,12 +97,13 @@ final class ITSEC_Settings_Page {
 			}
 		}
 
-		wp_enqueue_script( 'itsec-settings-page-script', plugins_url( 'js/script.js', __FILE__ ), array(), $this->version, true );
+		wp_enqueue_script( 'itsec-scrollTo', plugins_url( 'js/scrollTo.js', dirname( __FILE__ ) ), array( 'jquery' ) );
+		wp_enqueue_script( 'itsec-settings-page-script', plugins_url( 'js/settings.js', __FILE__ ), array( 'underscore' ), ITSEC_Core::get_plugin_build(), true );
 		wp_localize_script( 'itsec-settings-page-script', 'itsec_page', $vars );
 	}
 
 	public function add_styles() {
-		wp_enqueue_style( 'itsec-settings-page-style', plugins_url( 'css/style.css', __FILE__ ), array(), $this->version );
+		wp_enqueue_style( 'itsec-settings-page-style', plugins_url( 'css/style.css', __FILE__ ), array(), ITSEC_Core::get_plugin_build() );
 	}
 
 	private function set_translation_strings() {
@@ -103,23 +118,12 @@ final class ITSEC_Settings_Page {
 			'activate'          => __( 'Enable', 'it-l10n-ithemes-security-pro' ),
 			'deactivate'        => __( 'Disable', 'it-l10n-ithemes-security-pro' ),
 			'error'             => __( 'Error', 'it-l10n-ithemes-security-pro' ),
+			'dismiss'			=> __( 'Dismiss Notice', 'it-l10n-ithemes-security-pro' ), // Screen reader text for dismissible notices
+			'copied'            => __( 'Copied!', 'it-l10n-ithemes-security-pro' ),
+			'copy_instruction'  => __( 'Please press Ctrl/Cmd+C to copy.', 'it-l10n-ithemes-security-pro' ),
 
 			/* translators: 1: module name */
 			'successful_save'   => __( 'Settings saved successfully for %1$s.', 'it-l10n-ithemes-security-pro' ),
-
-			'ajax_invalid'      => new WP_Error( 'itsec-settings-page-invalid-ajax-response', __( 'An "invalid format" error prevented the request from completing as expected. The format of data returned could not be recognized. This could be due to a plugin/theme conflict or a server configuration issue.', 'it-l10n-ithemes-security-pro' ) ),
-
-			'ajax_forbidden'    => new WP_Error( 'itsec-settings-page-forbidden-ajax-response: %1$s "%2$s"',  __( 'A "request forbidden" error prevented the request from completing as expected. The server returned a 403 status code, indicating that the server configuration is prohibiting this request. This could be due to a plugin/theme conflict or a server configuration issue. Please try refreshing the page and trying again. If the request continues to fail, you may have to alter plugin settings or server configuration that could account for this AJAX request being blocked.', 'it-l10n-ithemes-security-pro' ) ),
-
-			'ajax_not_found'    => new WP_Error( 'itsec-settings-page-not-found-ajax-response: %1$s "%2$s"', __( 'A "not found" error prevented the request from completing as expected. The server returned a 404 status code, indicating that the server was unable to find the requested admin-ajax.php file. This could be due to a plugin/theme conflict, a server configuration issue, or an incomplete WordPress installation. Please try refreshing the page and trying again. If the request continues to fail, you may have to alter plugin settings, alter server configurations, or reinstall WordPress.', 'it-l10n-ithemes-security-pro' ) ),
-
-			'ajax_server_error' => new WP_Error( 'itsec-settings-page-server-error-ajax-response: %1$s "%2$s"', __( 'A "internal server" error prevented the request from completing as expected. The server returned a 500 status code, indicating that the server was unable to complete the request due to a fatal PHP error or a server problem. This could be due to a plugin/theme conflict, a server configuration issue, a temporary hosting issue, or invalid custom PHP modifications. Please check your server\'s error logs for details about the source of the error and contact your hosting company for assistance if required.', 'it-l10n-ithemes-security-pro' ) ),
-
-			'ajax_unknown'      => new WP_Error( 'itsec-settings-page-ajax-error-unknown: %1$s "%2$s"', __( 'An unknown error prevented the request from completing as expected. This could be due to a plugin/theme conflict or a server configuration issue.', 'it-l10n-ithemes-security-pro' ) ),
-
-			'ajax_timeout'      => new WP_Error( 'itsec-settings-page-ajax-error-timeout: %1$s "%2$s"', __( 'A timeout error prevented the request from completing as expected. The site took too long to respond. This could be due to a plugin/theme conflict or a server configuration issue.', 'it-l10n-ithemes-security-pro' ) ),
-
-			'ajax_parsererror'  => new WP_Error( 'itsec-settings-page-ajax-error-parsererror: %1$s "%2$s"', __( 'A parser error prevented the request from completing as expected. The site sent a response that jQuery could not process. This could be due to a plugin/theme conflict or a server configuration issue.', 'it-l10n-ithemes-security-pro' ) ),
 		);
 
 		foreach ( $this->translations as $key => $message ) {
@@ -154,18 +158,37 @@ final class ITSEC_Settings_Page {
 			ITSEC_Response::add_error( new WP_Error( 'itsec-settings-page-missing-method', __( 'The server did not receive a valid request. The required "method" argument is missing. Please try again.', 'it-l10n-ithemes-security-pro' ) ) );
 		} else if ( 'save' === $method ) {
 			$this->handle_post();
+			ITSEC_Response::maybe_flag_new_notifications_available();
 		} else if ( empty( $module ) ) {
 			ITSEC_Response::add_error( new WP_Error( 'itsec-settings-page-missing-module', __( 'The server did not receive a valid request. The required "module" argument is missing. Please try again.', 'it-l10n-ithemes-security-pro' ) ) );
 		} else if ( 'activate' === $method ) {
-			ITSEC_Response::set_response( ITSEC_Modules::activate( $module ) );
+			$was_active = ITSEC_Modules::activate( $module );
+			ITSEC_Response::set_response( $was_active );
+
+			if ( ! $was_active ) {
+				ITSEC_Modules::load_module_file( 'active.php', $module );
+			}
+
+			ITSEC_Response::add_store_dispatch( 'ithemes-security/user-groups', 'fetchGroupsSettings' );
+			ITSEC_Response::add_store_dispatch( 'ithemes-security/core', 'fetchIndex', [ true ] );
+			ITSEC_Response::maybe_flag_new_notifications_available();
 		} else if ( 'deactivate' === $method ) {
 			ITSEC_Response::set_response( ITSEC_Modules::deactivate( $module ) );
+			ITSEC_Response::add_store_dispatch( 'ithemes-security/user-groups', 'fetchGroupsSettings' );
+			ITSEC_Response::add_store_dispatch( 'ithemes-security/core', 'fetchIndex', [ true ] );
+			ITSEC_Response::maybe_flag_new_notifications_available();
 		} else if ( 'is_active' === $method ) {
 			ITSEC_Response::set_response( ITSEC_Modules::is_active( $module ) );
 		} else if ( 'get_refreshed_module_settings' === $method ) {
 			ITSEC_Response::set_response( $this->get_module_settings( $module ) );
 		} else if ( 'get_refreshed_widget_settings' === $method ) {
 			ITSEC_Response::set_response( $this->get_widget_settings( $module ) );
+		} else if ( 'get_refreshed_module_form' === $method ) {
+			$form = new ITSEC_Form();
+			$this->prepare_modules_and_calculate_filters();
+			ob_start();
+			$this->print_modules_form( $form );
+			ITSEC_Response::set_response( ob_get_clean() );
 		} else if ( 'handle_module_request' === $method ) {
 			if ( isset( $this->modules[$module] ) ) {
 				if ( isset( $_POST['data'] ) ) {
@@ -291,6 +314,7 @@ final class ITSEC_Settings_Page {
 			return;
 		}
 
+		ITSEC_Response::maybe_flag_new_notifications_available();
 		ITSEC_Response::maybe_regenerate_wp_config();
 		ITSEC_Response::maybe_regenerate_server_config();
 		ITSEC_Response::maybe_do_force_logout();
@@ -369,10 +393,7 @@ final class ITSEC_Settings_Page {
 		}
 	}
 
-	private function show_settings_page() {
-		$form = new ITSEC_Form();
-
-
+	private function prepare_modules_and_calculate_filters() {
 		$module_filters = array(
 			'all'         => array(
 				_x( 'All', 'List all modules', 'it-l10n-ithemes-security-pro' ),
@@ -388,30 +409,26 @@ final class ITSEC_Settings_Page {
 			),
 		);
 
-
-		$current_type = isset( $_REQUEST['module_type'] ) ? $_REQUEST['module_type'] : 'recommended';
-		$visible_modules = array();
-
 		foreach ( $this->modules as $id => $module ) {
 			$module_filters['all'][1]++;
 
-			if ( 'all' === $current_type ) {
-				$visible_modules[] = $id;
-			}
-
-
 			if ( isset( $module_filters[$module->type] ) ) {
 				$module_filters[$module->type][1]++;
-
-				if ( $module->type === $current_type ) {
-					$visible_modules[] = $id;
-				}
 			}
-
 
 			$module->enabled = ITSEC_Modules::is_active( $id );
 			$module->always_active = ITSEC_Modules::is_always_active( $id );
 		}
+
+		return $module_filters;
+	}
+
+	private function show_settings_page() {
+		$form = new ITSEC_Form();
+
+		$module_filters = $this->prepare_modules_and_calculate_filters();
+
+		$current_type = isset( $_REQUEST['module_type'] ) ? $_REQUEST['module_type'] : 'recommended';
 
 		$feature_tabs = array();
 
@@ -424,10 +441,6 @@ final class ITSEC_Settings_Page {
 
 			$feature_tabs[] = "<li class='itsec-module-filter' id='itsec-module-filter-$type'><a href='" . esc_url( add_query_arg( 'module_type', $type, $this->self_url ) ) . "' class='$class'>{$data[0]} <span class='count'>({$data[1]})</span></a>";
 		}
-
-
-		$whitelisted_ips = ITSEC_Lib::get_whitelisted_ips();
-		$blacklisted_ips = ITSEC_Lib::get_blacklisted_ips();
 
 		// Get user's view preference
 		$view = get_user_meta( get_current_user_id(), 'itsec-settings-view', true );
@@ -465,104 +478,16 @@ final class ITSEC_Settings_Page {
 							<a class="itsec-grid<?php if ( 'grid' === $view ) { echo ' itsec-selected'; } ?>"><span class="dashicons dashicons-grid-view"></span></a>
 							<a class="itsec-list<?php if ( 'list' === $view ) { echo ' itsec-selected'; } ?>"><span class="dashicons dashicons-list-view"></span></a>
 						</div>
+						<div class="itsec-module-search">
+							<input type="search" placeholder="<?php esc_attr_e( 'Search Modules', 'it-l10n-ithemes-security-pro' ); ?>" id="search" spellcheck="false" autocomplete="off" autofill="off" x-autocomplete="false">
+						</div>
 						<ul class="subsubsub itsec-feature-tabs hide-if-no-js">
-							<?php echo implode( $feature_tabs, " |</li>\n" ) . "</li>\n"; ?>
+							<?php echo implode( " |</li>\n", $feature_tabs ) . "</li>\n"; ?>
+							<li class="itsec-module-filter hide-if-js" id="itsec-module-filter-search">| <a><?php esc_html_e( 'Search', 'it-l10n-ithemes-security-pro' ); ?></a> <span class="count"></span></li>
 						</ul>
 					</div>
 					<div class="itsec-module-cards-container <?php echo $view; ?> hide-if-js">
-						<?php $form->start_form( 'itsec-module-settings-form' ); ?>
-							<?php $form->add_nonce( 'itsec-settings-page' ); ?>
-							<ul class="itsec-module-cards">
-								<?php foreach ( $this->modules as $id => $module ) : ?>
-									<?php
-										if ( ! in_array( $id, $visible_modules ) ) {
-//											continue;
-										}
-
-										$classes = array(
-											'itsec-module-type-' . $module->type,
-											'itsec-module-type-' . ( $module->enabled ? 'enabled' : 'disabled' ),
-										);
-
-										if ( $module->upsell ) {
-											$classes[] = 'itsec-module-pro-upsell';
-										}
-
-										if ( $module->pro ) {
-											$classes[] = 'itsec-module-type-pro';
-										}
-									?>
-									<li id="itsec-module-card-<?php echo $id; ?>" class="itsec-module-card <?php echo implode( ' ', $classes ); ?>" data-module-id="<?php echo $id; ?>">
-										<div class="itsec-module-card-content">
-											<?php if ( $module->upsell ) : ?>
-												<a href="<?php echo esc_url( $module->upsell_url ); ?>" target="_blank" rel="noopener noreferrer" class="itsec-pro-upsell">&nbsp;</a>
-											<?php endif; ?>
-											<h2><?php echo esc_html( $module->title ); ?></h2>
-											<?php if ( $module->pro ) : ?>
-												<div class="itsec-pro-label"><?php _e( 'Pro', 'it-l10n-ithemes-security-pro' ); ?></div>
-											<?php endif; ?>
-											<p class="module-description"><?php echo $module->description; ?></p>
-											<?php if ( ! $module->upsell ) : ?>
-												<div class="module-actions hide-if-no-js">
-													<?php if ( $module->information_only ) : ?>
-														<button class="button button-secondary itsec-toggle-settings information-only"><?php echo $this->translations['show_information']; ?></button>
-													<?php elseif ( $module->enabled || $module->always_active ) : ?>
-														<button class="button button-secondary itsec-toggle-settings"><?php echo $this->translations['show_settings']; ?></button>
-														<?php if ( ! $module->always_active ) : ?>
-															<button class="button button-secondary itsec-toggle-activation"><?php echo $this->translations['deactivate']; ?></button>
-														<?php endif; ?>
-													<?php else : ?>
-														<button class="button button-secondary itsec-toggle-settings"><?php echo $this->translations['show_description']; ?></button>
-														<button class="button button-primary itsec-toggle-activation"><?php echo $this->translations['activate']; ?></button>
-													<?php endif; ?>
-												</div>
-											<?php endif; ?>
-										</div>
-										<?php if ( ! $module->upsell ) : ?>
-											<div class="itsec-module-settings-container">
-												<div class="itsec-modal-navigation">
-													<button class="dashicons itsec-close-modal"></button>
-													<button class="itsec-right dashicons hidden"><span class="screen-reader-text"><?php _e( 'Configure next iThemes Security setting', 'it-l10n-ithemes-security-pro' ); ?></span></button>
-													<button class="itsec-left dashicons hidden"><span class="screen-reader-text"><?php _e( 'Configure previous iThemes Security setting', 'it-l10n-ithemes-security-pro' ); ?></span></button>
-												</div>
-												<div class="itsec-module-settings-content-container">
-													<div class="itsec-module-settings-content">
-														<h3 class="itsec-modal-header"><?php echo esc_html( $module->title ); ?></h3>
-														<div class="itsec-module-messages-container"></div>
-														<div class="itsec-module-settings-content-main">
-															<?php $this->get_module_settings( $id, $form, true ); ?>
-														</div>
-													</div>
-												</div>
-												<div class="itsec-list-content-footer hide-if-no-js">
-													<?php if ( $module->can_save ) : ?>
-														<button class="button button-primary align-left itsec-module-settings-save"><?php echo $this->translations['save_settings']; ?></button>
-													<?php endif; ?>
-													<button class="button button-secondary align-left itsec-module-settings-cancel"><?php _e( 'Cancel', 'it-l10n-ithemes-security-pro' ); ?></button>
-												</div>
-												<div class="itsec-modal-content-footer">
-													<?php if ( $module->enabled || $module->always_active || $module->information_only ) : ?>
-														<?php if ( ! $module->always_active && ! $module->information_only ) : ?>
-															<button class="button button-secondary align-right itsec-toggle-activation"><?php echo $this->translations['deactivate']; ?></button>
-														<?php endif; ?>
-													<?php else : ?>
-														<button class="button button-primary align-right itsec-toggle-activation"><?php echo $this->translations['activate']; ?></button>
-													<?php endif; ?>
-
-													<?php if ( $module->can_save ) : ?>
-														<button class="button button-primary align-left itsec-module-settings-save"><?php echo $this->translations['save_settings']; ?></button>
-													<?php else : ?>
-														<button class="button button-primary align-left itsec-close-modal"><?php echo $this->translations['close_settings']; ?></button>
-													<?php endif; ?>
-												</div>
-											</div>
-										<?php endif; ?>
-									</li>
-								<?php endforeach; ?>
-								<li class="itsec-module-card-filler"></li>
-							</ul>
-
-						<?php $form->end_form(); ?>
+						<?php $this->print_modules_form( $form ); ?>
 					</div>
 				</div>
 				<div class="itsec-modal-background"></div>
@@ -575,8 +500,20 @@ final class ITSEC_Settings_Page {
 							<?php $form->add_hidden( 'widget-id', $id ); ?>
 						<?php endif; ?>
 							<div id="itsec-sidebar-widget-<?php echo $id; ?>" class="postbox itsec-sidebar-widget">
-								<h3 class="hndle ui-sortable-handle"><span><?php echo esc_html( $widget->title ); ?></span></h3>
+								<div class="postbox-header">
+									<h2 class="hndle ui-sortable-handle"><span><?php echo esc_html( $widget->title ); ?></span></h2>
+								</div>
 								<div class="inside">
+									<?php if ( $messages = ITSEC_Lib_Remote_Messages::get_messages_for_placement( array( 'widget' => $id ) ) ) : ?>
+										<div class="itsec-widgets-service-status">
+											<?php foreach ( $messages as $message ): ?>
+												<div class="notice notice-alt notice-<?php echo esc_attr( $message['type'] ); ?> below-h2">
+													<p><?php echo $message['message']; ?></p>
+												</div>
+											<?php endforeach; ?>
+										</div>
+									<?php endif; ?>
+
 									<?php $this->get_widget_settings( $id, $form, true ); ?>
 								</div>
 							</div>
@@ -597,6 +534,143 @@ final class ITSEC_Settings_Page {
 <?php
 
 	}
+
+	/**
+	 * Print the modules form element.
+	 *
+	 * @param ITSEC_Form $form
+	 */
+	private function print_modules_form( $form ) {
+		?>
+		<?php $form->start_form( 'itsec-module-settings-form' ); ?>
+		<?php $form->add_nonce( 'itsec-settings-page' ); ?>
+		<ul class="itsec-module-cards">
+			<?php foreach ( $this->modules as $id => $module ) : ?>
+				<?php
+
+				$classes = array(
+					'itsec-module-type-' . $module->type,
+					'itsec-module-type-' . ( $module->enabled ? 'enabled' : 'disabled' ),
+				);
+
+				if ( $module->upsell ) {
+					$classes[] = 'itsec-module-pro-upsell';
+				}
+
+				if ( $module->pro ) {
+					$classes[] = 'itsec-module-type-pro';
+				}
+
+				if ( 'warning' === $module->status ) {
+					$classes[] = 'itsec-module-status--warning';
+				}
+				?>
+				<li id="itsec-module-card-<?php echo $id; ?>" class="itsec-module-card <?php echo implode( ' ', $classes ); ?>" data-module-id="<?php echo $id; ?>">
+					<div class="itsec-module-card-content">
+						<?php if ( $module->upsell ) : ?>
+							<a href="<?php echo esc_url( $module->upsell_url ); ?>" target="_blank" rel="noopener noreferrer" class="itsec-pro-upsell">&nbsp;</a>
+						<?php endif; ?>
+						<h2><?php echo esc_html( $module->title ); ?></h2>
+						<?php if ( $module->pro ) : ?>
+							<div class="itsec-pro-label"><?php _e( 'Pro', 'it-l10n-ithemes-security-pro' ); ?></div>
+						<?php endif; ?>
+						<p class="module-description"><?php echo $module->description; ?></p>
+						<?php if ( ! $module->upsell ) : ?>
+							<div class="module-actions hide-if-no-js">
+								<?php if ( $module->information_only ) : ?>
+									<button class="button button-secondary itsec-toggle-settings information-only"><?php echo $this->translations['show_information']; ?></button>
+								<?php elseif ( $module->enabled || $module->always_active ) : ?>
+									<button class="button button-secondary itsec-toggle-settings"><?php echo $this->translations['show_settings']; ?></button>
+									<?php if ( ! $module->always_active ) : ?>
+										<button class="button button-secondary itsec-toggle-activation"><?php echo $this->translations['deactivate']; ?></button>
+									<?php endif; ?>
+								<?php else : ?>
+									<button class="button button-secondary itsec-toggle-settings"><?php echo $this->translations['show_description']; ?></button>
+									<button class="button button-primary itsec-toggle-activation"><?php echo $this->translations['activate']; ?></button>
+								<?php endif; ?>
+							</div>
+						<?php endif; ?>
+					</div>
+					<?php if ( ! $module->upsell ) : ?>
+						<div class="itsec-module-settings-container">
+							<div class="itsec-modal-navigation">
+								<button class="dashicons itsec-close-modal"></button>
+								<button class="itsec-right dashicons hidden"><span class="screen-reader-text"><?php _e( 'Configure next iThemes Security setting', 'it-l10n-ithemes-security-pro' ); ?></span></button>
+								<button class="itsec-left dashicons hidden"><span class="screen-reader-text"><?php _e( 'Configure previous iThemes Security setting', 'it-l10n-ithemes-security-pro' ); ?></span></button>
+							</div>
+							<div class="itsec-module-settings-content-container">
+								<div class="itsec-module-settings-content">
+									<h3 class="itsec-modal-header">
+										<?php echo esc_html( $module->title ); ?>
+										<?php do_action( 'itsec_module_settings_after_title', $id ); ?>
+									</h3>
+									<div class="itsec-module-messages-container" id="itsec-module-messages-container-<?php echo esc_attr( $id ); ?>"></div>
+									<div class="itsec-module-settings-content-main">
+										<?php $this->get_module_settings( $id, $form, true ); ?>
+									</div>
+								</div>
+							</div>
+							<div class="itsec-list-content-footer hide-if-no-js">
+								<div class="itsec-module-footer-actions itsec-module-footer-actions--left">
+									<?php if ( $module->can_save ) : ?>
+										<button class="button button-primary itsec-module-settings-save"><?php echo $this->translations['save_settings']; ?></button>
+									<?php endif; ?>
+									<button class="button button-secondary itsec-module-settings-cancel"><?php _e( 'Cancel', 'it-l10n-ithemes-security-pro' ); ?></button>
+								</div>
+
+								<div class="itsec-module-footer-actions itsec-module-footer-actions--right">
+									<?php if ( $module->documentation ): ?>
+										<a href="<?php echo esc_url( $module->documentation ); ?>" class="itsec-module-documentation"><?php esc_html_e( 'Documentation', 'it-l10n-ithemes-security-pro' ); ?></a>
+									<?php endif; ?>
+								</div>
+							</div>
+							<div class="itsec-modal-content-footer">
+								<div class="itsec-module-footer-actions itsec-module-footer-actions--left">
+									<?php if ( $module->can_save ) : ?>
+										<button class="button button-primary itsec-module-settings-save"><?php echo $this->translations['save_settings']; ?></button>
+									<?php else : ?>
+										<button class="button button-primary itsec-close-modal"><?php echo $this->translations['close_settings']; ?></button>
+									<?php endif; ?>
+								</div>
+
+								<div class="itsec-module-footer-actions itsec-module-footer-actions--right">
+									<?php if ( $module->documentation ): ?>
+										<a href="<?php echo esc_url( $module->documentation ); ?>" class="itsec-module-documentation"><?php esc_html_e( 'Documentation', 'it-l10n-ithemes-security-pro' ); ?></a>
+									<?php endif; ?>
+
+									<?php if ( $module->enabled || $module->always_active || $module->information_only ) : ?>
+										<?php if ( ! $module->always_active && ! $module->information_only ) : ?>
+											<button class="button button-secondary itsec-toggle-activation"><?php echo $this->translations['deactivate']; ?></button>
+										<?php endif; ?>
+									<?php else : ?>
+										<button class="button button-primary itsec-toggle-activation"><?php echo $this->translations['activate']; ?></button>
+									<?php endif; ?>
+								</div>
+							</div>
+						</div>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+			<li class="itsec-module-card-filler"></li>
+		</ul>
+
+		<?php $form->end_form(); ?>
+
+<?php
+
+	}
+
+	public static function show_details_toggle( $description, $details ) {
+		$self = self::get_instance();
+
+		echo "<div class='itsec-warning-message itsec-details-toggle-container'>\n";
+		echo "$description<br />\n";
+		echo '<a href="#" class="hide-if-no-js">' . esc_html( $self->translations['show_information'] ) . '</a>';
+		echo "<div class='itsec-details-toggle-details hide-if-js'>\n";
+		echo $details;
+		echo "</div>\n";
+		echo "</div>\n";
+	}
 }
 
-new ITSEC_Settings_Page();
+ITSEC_Settings_Page::get_instance();

@@ -1,5 +1,7 @@
 <?php
 
+use iThemesSecurity\TwoFactor\Application_Passwords_Core;
+
 /**
  * Two-Factor Helper Class
  *
@@ -8,14 +10,6 @@
  * @package iThemes_Security
  */
 class ITSEC_Two_Factor_Helper {
-
-	/**
-	 * The name of the module's saved options setting
-	 *
-	 * @access private
-	 * @var string
-	 */
-	private $_setting_name = 'itsec_two_factor';
 
 	/**
 	 * Array of two-factor providers
@@ -38,23 +32,18 @@ class ITSEC_Two_Factor_Helper {
 	 */
 	private static $instance = false;
 
+	/** @var array */
+	private $_enabled_providers;
+
+	/** @var array */
+	private $_enabled_provider_instances;
+
 	/**
 	 * private construct to enforce singleton
 	 */
 	private function __construct() {
-
-		require_once( 'class-itsec-two-factor-core-compat.php' );
-
-		/**
-		 * Include the base provider class here, so that other plugins can also extend it.
-		 */
-		require_once( 'providers/class.two-factor-provider.php' );
-
-		/**
-		 * Include the application passwords system.
-		 */
-		require_once( 'application-passwords.php' );
-		ITSEC_Application_Passwords::add_hooks();
+		require_once __DIR__ . '/class-itsec-two-factor-core-compat.php';
+		require_once __DIR__ . '/providers/class.two-factor-provider.php';
 
 		if ( is_admin() ) {
 			// Always instantiate enabled providers in admin for use in settings, etc
@@ -62,7 +51,6 @@ class ITSEC_Two_Factor_Helper {
 		} else {
 			add_action( 'init', array( $this, 'get_all_providers' ) );
 		}
-
 	}
 
 	/**
@@ -78,6 +66,8 @@ class ITSEC_Two_Factor_Helper {
 
 	/**
 	 * Get a list of providers
+	 *
+	 * @param bool $refresh Whether to bypass the in-memory cache.
 	 *
 	 * @return array where key is provider class name and value is the provider file
 	 */
@@ -109,7 +99,9 @@ class ITSEC_Two_Factor_Helper {
 	/**
 	 * Get a list of enabled providers
 	 *
-	 * @return array where key is provider class name and value is the provider file
+	 * @param bool $refresh Whether to bypass the in-memory cache.
+	 *
+	 * @return string[] where key is provider class name and value is the provider file
 	 */
 	public function get_enabled_providers( $refresh = false ) {
 		if ( ! empty( $this->_enabled_providers ) && ! $refresh ) {
@@ -143,6 +135,13 @@ class ITSEC_Two_Factor_Helper {
 		return $this->_enabled_providers;
 	}
 
+	/**
+	 * Return a list of provider instances for all available providers.
+	 *
+	 * @param bool $refresh Whether to bypass the in-memory cache.
+	 *
+	 * @return Two_Factor_Provider[]
+	 */
 	public function get_all_provider_instances( $refresh = false ) {
 		if ( ! empty( $this->_provider_instances ) && ! $refresh ) {
 			return $this->_provider_instances;
@@ -153,6 +152,13 @@ class ITSEC_Two_Factor_Helper {
 		return $this->_provider_instances;
 	}
 
+	/**
+	 * Return a list of provider instances for all enabled providers.
+	 *
+	 * @param bool $refresh Whether to bypass the in-memory cache.
+	 *
+	 * @return Two_Factor_Provider[]
+	 */
 	public function get_enabled_provider_instances( $refresh = false ) {
 		if ( ! empty( $this->_enabled_provider_instances ) && ! $refresh ) {
 			return $this->_enabled_provider_instances;
@@ -161,6 +167,20 @@ class ITSEC_Two_Factor_Helper {
 		$this->_enabled_provider_instances = $this->_instantiate_providers( $this->get_enabled_providers( $refresh ) );
 
 		return $this->_enabled_provider_instances;
+	}
+
+	/**
+	 * Get an instance for a Two Factor Provider.
+	 *
+	 * @param string $provider Provider class name.
+	 * @param bool   $refresh  Whether to refresh a new instance.
+	 *
+	 * @return Two_Factor_Provider|null
+	 */
+	public function get_provider_instance( $provider, $refresh = false ) {
+		$instances = $this->get_all_provider_instances( $refresh );
+
+		return isset( $instances[ $provider ] ) ? $instances[ $provider ] : null;
 	}
 
 	private function _instantiate_providers( $providers ) {

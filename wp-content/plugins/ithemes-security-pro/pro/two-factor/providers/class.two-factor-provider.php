@@ -1,4 +1,8 @@
 <?php
+
+require_once( dirname( dirname( __FILE__ ) ) . '/includes/interface-itsec-two-factor-provider-on-boardable.php' );
+require_once( dirname( dirname( __FILE__ ) ) . '/includes/interface-itsec-two-factor-provider-cli-configurable.php' );
+
 /**
  * Abstract class for creating two-factor authentication providers.
  *
@@ -65,6 +69,22 @@ abstract class Two_Factor_Provider {
 	abstract function is_available_for_user( $user );
 
 	/**
+	 * Run code before rendering the authentication page and HTML is outputted.
+	 *
+	 * @param WP_User $user
+	 */
+	public function pre_render_authentication_page( $user ) {}
+
+	/**
+	 * Can this two-factor provider resend its code.
+	 *
+	 * @return bool
+	 */
+	public function can_resend_code() {
+		return false;
+	}
+
+	/**
 	 * Generate a random eight-digit string to send out as an auth code.
 	 *
 	 * @since 0.1-dev
@@ -74,14 +94,13 @@ abstract class Two_Factor_Provider {
 	 * @return string
 	 */
 	public function get_code( $length = 8, $chars = '1234567890' ) {
+
 		$code = '';
-		if ( ! is_array( $chars ) ) {
-			$chars = str_split( $chars );
-		}
+
 		for ( $i = 0; $i < $length; $i++ ) {
-			$key = array_rand( $chars );
-			$code .= $chars[ $key ];
+			$code .= substr( $chars, wp_rand( 0, strlen( $chars ) - 1 ), 1 );
 		}
+
 		return $code;
 	}
 

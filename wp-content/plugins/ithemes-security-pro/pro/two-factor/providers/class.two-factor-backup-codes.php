@@ -6,13 +6,14 @@
  *
  * @package Two_Factor
  */
-class Two_Factor_Backup_Codes extends Two_Factor_Provider {
+class Two_Factor_Backup_Codes extends Two_Factor_Provider implements ITSEC_Two_Factor_Provider_On_Boardable, ITSEC_Two_Factor_Provider_CLI_Configurable {
 
 	/**
 	 * The user meta backup codes key.
 	 * @type string
 	 */
 	const BACKUP_CODES_META_KEY = '_two_factor_backup_codes';
+	const TEMP_FLAG_META_KEY = '_itsec_two_factor_backup_codes_temp';
 
 	/**
 	 * The number backup codes.
@@ -83,7 +84,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'Backup Verification Codes', 'Provider Label', 'it-l10n-ithemes-security-pro' );
+		return _x( 'Backup Authentication Codes', 'Provider Label', 'it-l10n-ithemes-security-pro' );
 	}
 
 	/**
@@ -116,7 +117,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<p></p>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
-				<?php esc_html_e( 'Generate Verification Codes', 'it-l10n-ithemes-security-pro' ); ?>
+				<?php esc_html_e( 'Generate Authentication Codes', 'it-l10n-ithemes-security-pro' ); ?>
 			</button>
 			<span class="two-factor-backup-codes-count"><?php echo esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count ), $count ) ); ?></span>
 		</p>
@@ -162,6 +163,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @param array   $args Optional arguments for assinging new codes.
+	 *
+	 * @return string[]
 	 */
 	public function generate_codes( $user, $args = '' ) {
 		$codes = array();
@@ -234,9 +237,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
-		<p style="padding-bottom:1em;"><?php esc_html_e( 'Enter a backup verification code.', 'it-l10n-ithemes-security-pro' ); ?></p><br/>
+		<p style="padding-bottom:1em;"><?php esc_html_e( 'Enter a backup Authentication Code.', 'it-l10n-ithemes-security-pro' ); ?></p><br/>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'it-l10n-ithemes-security-pro' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'it-l10n-ithemes-security-pro' ); ?></label>
 			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
@@ -264,7 +267,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		return $this->validate_code( $user, $_POST['two-factor-backup-code'] );
+		return $this->validate_code( $user, trim( $_POST['two-factor-backup-code'] ) );
 	}
 
 	/**
@@ -312,5 +315,84 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	public function description() {
 		echo '<p class="description">' . __( 'Provide a set of one-time use codes that can be used to login in the event the primary two-factor method is lost. Note: these codes are intended to be stored in a secure location.', 'it-l10n-ithemes-security-pro' ) . '</p>';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_dashicon() {
+		return 'backup';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_label() {
+		return esc_html__( 'Backup Codes', 'it-l10n-ithemes-security-pro' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_description() {
+		return esc_html__( 'A list of one-time codes you can use if you lose access to your device.', 'it-l10n-ithemes-security-pro' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function has_on_board_configuration() {
+		return true;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function get_on_board_config( WP_User $user ) {
+
+		$is_configured = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true ) !== '';
+
+		if ( $is_configured && ! get_user_meta( $user->ID, self::TEMP_FLAG_META_KEY, true ) ) {
+			$config = array(
+				'code_count'    => self::codes_remaining_for_user( $user ),
+				'codes'         => array(),
+				'is_configured' => true,
+			);
+		} else {
+			update_user_meta( $user->ID, self::TEMP_FLAG_META_KEY, true );
+			$config = array(
+				'codes'         => $codes = $this->generate_codes( $user ),
+				'code_count'    => count( $codes ),
+				'is_configured' => false,
+			);
+		}
+
+		return $config;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function handle_ajax_on_board( WP_User $user, array $data ) {
+		if ( $data['itsec_method'] === 'generate-backup-codes' ) {
+			$new = $this->generate_codes( $user );
+
+			wp_send_json_success( array(
+				'message'    => esc_html__( 'Codes Generated', 'it-l10n-ithemes-security-pro' ),
+				'codes'      => $new,
+				'code_count' => count( $new ),
+			) );
+		}
+	}
+
+	public function configure_via_cli( WP_User $user, array $args ) {
+		$codes     = $this->generate_codes( $user );
+		$as_string = implode( ' ', $codes );
+
+		if ( empty( $args['porcelain'] ) ) {
+			WP_CLI::log( sprintf( 'Backup Codes: %s', $as_string ) );
+		} else {
+			WP_CLI::log( $as_string );
+		}
 	}
 }

@@ -27,7 +27,9 @@ final class ITSEC_Application_Passwords {
 			return $input_user;
 		}
 
+		remove_filter( 'determine_current_user', array( __CLASS__, 'filter_current_user' ), 20 );
 		$user = self::authenticate( $input_user, $_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'] );
+		add_filter( 'determine_current_user', array( __CLASS__, 'filter_current_user' ), 20 );
 
 		if ( is_a( $user, 'WP_User' ) ) {
 			return $user->ID;
@@ -38,9 +40,9 @@ final class ITSEC_Application_Passwords {
 	}
 
 	public static function authenticate( $input_user, $username, $password ) {
-		$xml_rpc_request = ITSEC_Core::is_xmlrpc_request();
+		$xml_rpc_request  = ITSEC_Core::is_xmlrpc_request();
 		$rest_api_request = ITSEC_Core::is_rest_api_request();
-		$api_request = apply_filters( 'application_password_is_api_request', $xml_rpc_request || $rest_api_request );
+		$api_request      = apply_filters( 'application_password_is_api_request', $xml_rpc_request || $rest_api_request );
 
 		if ( ! $api_request ) {
 			return $input_user;
@@ -64,16 +66,18 @@ final class ITSEC_Application_Passwords {
 		$password = preg_replace( '/[^a-z\d]/i', '', $password );
 
 		require_once( dirname( __FILE__ ) . '/application-passwords-util.php' );
-		$application_passwords = ITSEC_Application_Passwords_Util::get( $user->ID );
+		$application_passwords = ITSEC_Application_Passwords_Util::available_for_user( $user ) ? ITSEC_Application_Passwords_Util::get( $user->ID ) : array();
 
 		foreach ( $application_passwords as $key => $item ) {
 			if ( $rest_api_request ) {
+				$method = ITSEC_Lib_REST::get_http_method();
+
 				if ( ! in_array( 'rest-api', $item['enabled_for'] ) ) {
 					continue;
-				} else if ( ( 'read' === $item['rest_api_permissions'] ) && ( 'GET' !== $_SERVER['REQUEST_METHOD'] ) ) {
+				} elseif ( ( 'read' === $item['rest_api_permissions'] ) && ( ! in_array( $method, array( 'GET', 'HEAD' ), true ) ) ) {
 					continue;
 				}
-			} else if ( $xml_rpc_request && ! in_array( 'xml-rpc', $item['enabled_for'] ) ) {
+			} elseif ( $xml_rpc_request && ! in_array( 'xml-rpc', $item['enabled_for'] ) ) {
 				continue;
 			} else {
 				// All custom API requests due to the application_password_is_api_request filter returning true are checked
@@ -81,9 +85,9 @@ final class ITSEC_Application_Passwords {
 			}
 
 			if ( wp_check_password( $password, $item['password'], $user->ID ) ) {
-				$item['last_used'] = time();
-				$item['last_ip'] = $_SERVER['REMOTE_ADDR'];
-				$application_passwords[$key] = $item;
+				$item['last_used']             = time();
+				$item['last_ip']               = $_SERVER['REMOTE_ADDR'];
+				$application_passwords[ $key ] = $item;
 
 				ITSEC_Application_Passwords_Util::set( $user->ID, $application_passwords );
 
@@ -93,7 +97,7 @@ final class ITSEC_Application_Passwords {
 
 		// If the user uses two factor and no valid API credentials were used, return an error
 		if ( Two_Factor_Core::is_user_using_two_factor( $user->ID ) ) {
-			return new WP_Error( 'invalid_application_credentials', __( '<strong>ERROR</strong>: Invalid API credentials provided.', 'it-l10n-ithemes-security-pro' ) );
+			return new WP_Error( 'invalid_application_credentials', esc_html__( 'ERROR: Invalid API credentials provided.', 'it-l10n-ithemes-security-pro' ) );
 		}
 
 		// By default, return what we've been passed.
@@ -103,6 +107,8 @@ final class ITSEC_Application_Passwords {
 	public static function show_user_profile( $user ) {
 		require_once( dirname( __FILE__ ) . '/application-passwords-util.php' );
 
-		ITSEC_Application_Passwords_Util::show_user_profile( $user );
+		if ( ITSEC_Application_Passwords_Util::available_for_user( $user ) ) {
+			ITSEC_Application_Passwords_Util::show_user_profile( $user );
+		}
 	}
 }

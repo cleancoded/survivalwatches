@@ -1,7 +1,7 @@
 <?php
 
 final class ITSEC_Version_Management_Settings_Page extends ITSEC_Module_Settings_Page {
-	private $version = 1;
+	private $version = 3;
 
 
 	public function __construct() {
@@ -15,7 +15,40 @@ final class ITSEC_Version_Management_Settings_Page extends ITSEC_Module_Settings
 	}
 
 	public function enqueue_scripts_and_styles() {
+
+		$config = ITSEC_Modules::get_setting( 'version-management', 'packages' );
+
+		$packages = array();
+
+		foreach ( get_plugins() as $file => $plugin ) {
+			$packages[] = array(
+				'id'    => "plugin:{$file}",
+				'name'  => $plugin['Name'],
+				'file'  => $file,
+				'kind'  => 'plugin',
+				'type'  => isset( $config["plugin:{$file}"]['type'] ) ? $config["plugin:{$file}"]['type'] : 'enabled',
+				'delay' => isset( $config["plugin:{$file}"]['delay'] ) ? $config["plugin:{$file}"]['delay'] : 3,
+			);
+		}
+
+		foreach ( wp_get_themes() as $file => $theme ) {
+			$packages[] = array(
+				'id'    => "theme:{$file}",
+				'name'  => $theme->get( 'Name' ),
+				'file'  => $file,
+				'kind'  => 'theme',
+				'type'  => isset( $config["theme:{$file}"]['type'] ) ? $config["theme:{$file}"]['type'] : 'enabled',
+				'delay' => isset( $config["theme:{$file}"]['delay'] ) ? $config["theme:{$file}"]['delay'] : 3,
+			);
+		}
+
 		wp_enqueue_style( 'itsec-version-management-style', plugins_url( 'css/settings-page.css', __FILE__ ), array(), $this->version );
+		wp_enqueue_script( 'itsec-version-management-script', plugins_url( 'js/settings-page.js', __FILE__ ), array( 'jquery', 'wp-backbone', 'underscore' ), $this->version );
+		wp_localize_script( 'itsec-version-management-script', 'ITSECVersionManagement', array(
+			/* translators: %s is the plugin or theme name. */
+			'bulkLabel' => __( 'Select %s', 'it-l10n-ithemes-security-pro' ),
+			'packages'  => $packages,
+		) );
 	}
 
 	protected function render_description( $form ) {
@@ -27,23 +60,15 @@ final class ITSEC_Version_Management_Settings_Page extends ITSEC_Module_Settings
 	}
 
 	protected function render_settings( $form ) {
+
+		require_once( dirname( __FILE__ ) . '/js/templates.php' );
+
+		/** @var ITSEC_Version_Management_Validator $validator */
 		$validator = ITSEC_Modules::get_validator( $this->id );
 
-		$users_and_roles = $validator->get_available_admin_users_and_roles();
-
-		$users = $users_and_roles['users'];
-		$roles = $users_and_roles['roles'];
-
-		natcasesort( $users );
-
-
-		$contacts = $form->get_option( 'email_contacts' );
-
-		if ( empty( $contacts ) || ! is_array( $contacts ) ) {
-			$form->set_option( 'email_contacts', array_keys( $roles ) );
-		}
-
+		$this->add_automatic_update_status_errors();
 ?>
+
 	<table class="form-table">
 		<tr>
 			<th scope="row"><label for="itsec-version-management-wordpress_automatic_updates"><?php esc_html_e( 'WordPress Updates', 'it-l10n-ithemes-security-pro' ); ?></label></th>
@@ -58,23 +83,25 @@ final class ITSEC_Version_Management_Settings_Page extends ITSEC_Module_Settings
 		<tr>
 			<th scope="row"><label for="itsec-version-management-plugin_automatic_updates"><?php esc_html_e( 'Plugin Updates', 'it-l10n-ithemes-security-pro' ); ?></label></th>
 			<td>
-				<p>
-					<?php $form->add_checkbox( 'plugin_automatic_updates' ); ?>
-					<label for="itsec-version-management-plugin_automatic_updates"><?php esc_html_e( 'Automatically install the latest plugin updates.', 'it-l10n-ithemes-security-pro' ); ?></label>
-					<?php $this->render_tooltip( __( 'This should be enabled unless you actively maintain this site on a daily basis and install the updates manually shortly after they are released.', 'it-l10n-ithemes-security-pro' ) ); ?>
+				<?php $form->add_select( 'plugin_automatic_updates', $validator->get_update_types() ); ?>
+				<p class="description">
+					<?php esc_html_e( 'Automatically install the latest plugin updates.', 'it-l10n-ithemes-security-pro' ); ?>
+					<?php esc_html_e( 'Enabling this setting will disable the WordPress auto-update plugins feature to prevent conflicts.', 'it-l10n-ithemes-security-pro' ); ?>
 				</p>
 			</td>
 		</tr>
+		<?php $this->render_packages( $form, 'plugin' ); ?>
 		<tr>
 			<th scope="row"><label for="itsec-version-management-theme_automatic_updates"><?php esc_html_e( 'Theme Updates', 'it-l10n-ithemes-security-pro' ); ?></label></th>
 			<td>
-				<p>
-					<?php $form->add_checkbox( 'theme_automatic_updates' ); ?>
-					<label for="itsec-version-management-theme_automatic_updates"><?php esc_html_e( 'Automatically install the latest theme updates.', 'it-l10n-ithemes-security-pro' ); ?></label>
-					<?php $this->render_tooltip( __( 'This should be enabled unless your theme has file customizations.', 'it-l10n-ithemes-security-pro' ) ); ?>
+				<?php $form->add_select( 'theme_automatic_updates', $validator->get_update_types() ); ?>
+				<p class="description">
+					<?php esc_html_e( 'Automatically install the latest theme updates.', 'it-l10n-ithemes-security-pro' ); ?>
+					<?php esc_html_e( 'Enabling this setting will disable the WordPress auto-update theme feature to prevent conflicts.', 'it-l10n-ithemes-security-pro' ); ?>
 				</p>
 			</td>
 		</tr>
+		<?php $this->render_packages( $form, 'theme' ); ?>
 		<tr>
 			<th scope="row"><label for="itsec-version-management-strengthen_when_outdated"><?php esc_html_e( 'Strengthen Site When Running Outdated Software', 'it-l10n-ithemes-security-pro' ); ?></label></th>
 			<td>
@@ -102,27 +129,12 @@ final class ITSEC_Version_Management_Settings_Page extends ITSEC_Module_Settings
 			</td>
 		</tr>
 		<tr>
-			<th scope="row"><?php _e( 'Email Contacts', 'it-l10n-ithemes-security-pro' ); ?></th>
+			<th scope="row"><label for="itsec-version-management-update_if_vulnerable"><?php esc_html_e( 'Auto Update If Fixes Vulnerability', 'it-l10n-ithemes-security-pro' ); ?></label></th>
 			<td>
-				<p><?php _e( 'Select which users should get an email if a version management issue is found.', 'it-l10n-ithemes-security-pro' ); ?></p>
-
-				<ul>
-					<?php foreach ( $roles as $role => $name ) : ?>
-						<li>
-							<?php $form->add_multi_checkbox( 'email_contacts', $role ); ?>
-							<label for="itsec-version-management-email_contacts-role-<?php echo esc_attr( preg_replace( '/^role:/', '', $role ) ); ?>"><?php echo esc_html( sprintf( _x( 'All %s users', 'role', 'it-l10n-ithemes-security-pro' ), $name ) ); ?></label>
-						</li>
-					<?php endforeach; ?>
-				</ul>
-
-				<ul>
-					<?php foreach ( $users as $id => $name ) : ?>
-						<li>
-							<?php $form->add_multi_checkbox( 'email_contacts', $id ); ?>
-							<label for="itsec-version-management-email_contacts-<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $name ); ?></label>
-						</li>
-					<?php endforeach; ?>
-				</ul>
+				<p>
+					<?php $form->add_checkbox( 'update_if_vulnerable' ); ?>
+					<label for="itsec-version-management-update_if_vulnerable"><?php esc_html_e( 'Automatically update a plugin or theme if it fixes a vulnerability that was found by the Site Scanner.', 'it-l10n-ithemes-security-pro' ); ?></label>
+				</p>
 			</td>
 		</tr>
 	</table>
@@ -130,11 +142,75 @@ final class ITSEC_Version_Management_Settings_Page extends ITSEC_Module_Settings
 
 	}
 
+	/**
+	 * Render the packages form.
+	 *
+	 * @param ITSEC_Form $form
+	 * @param string     $type Either 'plugin' or 'theme'.
+	 *
+	 * @return void
+	 */
+	private function render_packages( $form, $type ) {
+
+		if ( $form->get_option( $type === 'plugin' ? 'plugin_automatic_updates' : 'theme_automatic_updates' ) === 'custom' ) {
+			$hidden = '';
+		} else {
+			$hidden = ' hidden';
+		}
+
+		$form->add_input_group( 'packages' );
+		?>
+		<tr id="itsec-version-management-<?php echo esc_attr( $type ); ?>-container" class="itsec-version-management-packages-container<?php echo esc_attr( $hidden ); ?>">
+			<td colspan="2">
+				<h4><?php $type === 'plugin' ? esc_html_e( 'Select Plugins', 'it-l10n-ithemes-security-pro' ) : esc_html_e( 'Select Themes', 'it-l10n-ithemes-security-pro' ); ?></h4>
+				<table class="itsec-vm-app" id="itsec-vm-app--<?php echo esc_attr( $type ); ?>"></table>
+			</td>
+		</tr>
+		<?php
+
+		$form->remove_input_group();
+	}
+
 	private function render_tooltip( $text ) {
 		/* translators: hover over this text to see the tooltip. */
 		$placeholder = __( '?', 'it-l10n-ithemes-security-pro' );
 
 		printf( '<!-- Tooltip --><span class="tooltip"><span class="tooltip-container">%1$s<span class="info"><span class="text">%2$s</span></span></span></span><!-- /Tooltip -->', $placeholder, $text );
+	}
+
+	private function add_automatic_update_status_errors() {
+		require_once( dirname( __FILE__ ) . '/utility.php' );
+		$statuses = ITSEC_VM_Utility::get_automatic_update_statuses();
+
+		$types = array(
+			'all'    => esc_html__( 'All Automatic Updates', 'it-l10n-ithemes-security-pro' ),
+			'core'   => esc_html__( 'WordPress Automatic Updates', 'it-l10n-ithemes-security-pro' ),
+			'plugin' => esc_html__( 'Plugin Automatic Updates', 'it-l10n-ithemes-security-pro' ),
+			'theme'  => esc_html__( 'Theme Automatic Updates', 'it-l10n-ithemes-security-pro' ),
+		);
+
+		$details = '';
+
+		foreach ( $types as $var => $description ) {
+			if ( empty( $statuses[$var] ) ) {
+				continue;
+			}
+
+			$error_strings = ITSEC_Response::get_error_strings( $statuses[$var] );
+
+			$details .= "<h4>$description</h4>\n";
+			$details .= "<ul>\n";
+
+			foreach ( $error_strings as $error_string ) {
+				$details .= "<li>$error_string</li>\n";
+			}
+
+			$details .= "</ul>\n";
+		}
+
+		if ( ! empty( $details ) ) {
+			ITSEC_Settings_Page::show_details_toggle( esc_html__( 'Warning: Due to server or site configuration, automatic updates may fail to install automatically if enabled.', 'it-l10n-ithemes-security-pro' ), $details );
+		}
 	}
 }
 

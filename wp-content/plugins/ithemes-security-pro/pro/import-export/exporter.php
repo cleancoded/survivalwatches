@@ -1,5 +1,7 @@
 <?php
 
+use \iThemesSecurity\User_Groups;
+
 final class ITSEC_Import_Export_Exporter {
 	public static function create( $email ) {
 		require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-file.php' );
@@ -19,13 +21,13 @@ final class ITSEC_Import_Export_Exporter {
 
 
 		$base_dir = ITSEC_Core::get_storage_dir() . '/export-' . current_time( 'Ymd-His' ) . '-';
-		$dir = $base_dir . wp_generate_password( 10, false );
-		$count = 0;
+		$dir      = $base_dir . wp_generate_password( 10, false );
+		$count    = 0;
 
 		while ( ITSEC_Lib_Directory::is_dir( $dir ) ) {
 			$dir = $base_dir . wp_generate_password( 10, false );
 
-			if ( ++$count > 20 ) {
+			if ( ++ $count > 20 ) {
 				return new WP_Error( 'itsec-import-export-exporter-create-cannot-find-unique-directory', __( 'Unable to find a unique, new directory to store the generated export file. The settings were not exported.', 'it-l10n-ithemes-security-pro' ) );
 			}
 		}
@@ -60,29 +62,41 @@ final class ITSEC_Import_Export_Exporter {
 			@unlink( $settings_file );
 		}
 
+		$time = ITSEC_Core::get_current_time_gmt();
 
-		/* translators: 1: site title */
-		$subject = sprintf( __( 'Security Settings Export for %1$s', 'it-l10n-ithemes-security-pro' ), get_bloginfo( 'name' ) );
+		$nc   = ITSEC_Core::get_notification_center();
+		$mail = $nc->mail();
+
+		$subject = $mail->prepend_site_url_to_subject( $nc->get_subject( 'import-export' ) );
 		$subject = apply_filters( 'itsec_backup_email_subject', $subject );
 
-		/* translators: 1: home URL, 2: date, 3: time */
-		$body = '<p>' . sprintf( __( 'Attached is the settings file for %1$s created on %2$s at %3$s.', 'it-l10n-ithemes-security-pro' ), network_home_url(), date_i18n( get_option( 'date_format' ) ), date_i18n( get_option( 'time_format' ) ) ) . '</p>';
+		$mail->set_subject( $subject, false );
+		$mail->set_recipients( array( $email ) );
+		$mail->add_attachment( $export_file );
 
-		if ( defined( 'ITSEC_DEBUG' ) && true === ITSEC_DEBUG ) {
-			$body .= '<p>Debug info (source page): ' . esc_url( $_SERVER["HTTP_HOST"] . $_SERVER["REQUEST_URI"] ) . '</p>';
-		}
-
-		$message = "<html>$body</html>";
-
-		$headers = array(
-			sprintf( 'From: %s <%s>', get_bloginfo( 'name' ), get_option( 'admin_email' ) ),
+		$mail->add_header(
+			esc_html__( 'Settings Export', 'it-l10n-ithemes-security-pro' ),
+			sprintf(
+			/* translators: 1. opening bold tag, 2. date, 3. time, 4. closing bold tag. */
+				esc_html__( 'Settings Export created on %1$s %2$s at %3$s %4$s', 'it-l10n-ithemes-security-pro' ),
+				'<b>',
+				date_i18n( get_option( 'date_format' ), $time ),
+				date_i18n( get_option( 'time_format' ), $time ),
+				'</b>'
+			)
 		);
 
-		$attachments = array( $export_file );
+		$message = ITSEC_Lib::replace_tags( $nc->get_message( 'import-export' ), array(
+			'date'       => date_i18n( get_option( 'date_format' ), $time ),
+			'time'       => date_i18n( get_option( 'time_format' ), $time ),
+			'site_url'   => $mail->get_display_url(),
+			'site_title' => get_bloginfo( 'name', 'display' ),
+		) );
 
-		add_filter( 'wp_mail_content_type', array( 'ITSEC_Import_Export_Exporter', 'get_html_content_type' ) );
-		$result = wp_mail( $email, $subject, $message, $headers, $attachments );
-		remove_filter( 'wp_mail_content_type', array( 'ITSEC_Import_Export_Exporter', 'get_html_content_type' ) );
+		$mail->add_info_box( $message, 'attachment' );
+		$mail->add_footer();
+
+		$result = $nc->send( 'import-export', $mail );
 
 		if ( false === $result ) {
 			/* translators: 1: absolute path to export file */
@@ -116,24 +130,53 @@ final class ITSEC_Import_Export_Exporter {
 			'itsec_rewrites_changed',
 			'itsec_config_changed',
 			'itsec_temp_whitelist_ip',
+			'itsec_online_files_hashes',
+			'itsec_file_change_scan_destroyed',
+			'itsec_file_change_latest',
 		);
 
-		$raw_options = $wpdb->get_results( "SELECT * FROM `" . $wpdb->options . "` WHERE `option_name` LIKE 'itsec%';", ARRAY_A );
+		$is_multisite = is_multisite();
+
+		if ( $is_multisite ) {
+			$raw_options = $wpdb->get_results( $q = $wpdb->prepare(
+				"SELECT * FROM `" . $wpdb->sitemeta . "` WHERE `meta_key` LIKE %s AND `site_id` = %d;", 'itsec%', $wpdb->siteid
+			), ARRAY_A );
+		} else {
+			$raw_options = $wpdb->get_results( "SELECT * FROM `" . $wpdb->options . "` WHERE `option_name` LIKE 'itsec%';", ARRAY_A );
+		}
 
 		$options = array();
 
-		foreach ( $raw_options as $option ) {
-			if ( in_array( $option['option_name'], $ignored_options ) ) {
+		foreach ( (array) $raw_options as $option ) {
+
+			$name = $is_multisite ? $option['meta_key'] : $option['option_name'];
+
+			if ( in_array( $name, $ignored_options ) ) {
+				continue;
+			}
+
+			if ( strpos( $name, 'itsec-lock' ) === 0 ) {
 				continue;
 			}
 
 			$options[] = array(
-				'name'  => $option['option_name'],
-				'value' => maybe_unserialize( $option['option_value'] ),
-				'auto'  => ( 'yes' === $option['autoload'] ) ? 'yes' : 'no',
+				'name'  => $name,
+				'value' => maybe_unserialize( $is_multisite ? $option['meta_value'] : $option['option_value'] ),
+				'auto'  => ( empty( $option['autoload'] ) || 'yes' === $option['autoload'] ) ? 'yes' : 'no',
 			);
 		}
 
+		$user_groups = [];
+
+		foreach ( ITSEC_Modules::get_container()->get( User_Groups\Repository\Repository::class )->all() as $user_group ) {
+			$user_groups[ $user_group->get_id() ] = [
+				'label'     => $user_group->get_label(),
+				'users'     => wp_list_pluck( $user_group->get_users(), 'ID' ),
+				'roles'     => $user_group->get_roles(),
+				'canonical' => $user_group->get_canonical_roles(),
+				'min_role'  => $user_group->get_min_role(),
+			];
+		}
 
 		$content = array(
 			'exporter_version' => 1,
@@ -141,12 +184,10 @@ final class ITSEC_Import_Export_Exporter {
 			'timestamp'        => ITSEC_Core::get_current_time_gmt(),
 			'site'             => network_home_url(),
 			'options'          => $options,
+			'abspath'          => ABSPATH,
+			'user_groups'      => $user_groups,
 		);
 
 		return $content;
-	}
-
-	public static function get_html_content_type() {
-		return 'text/html';
 	}
 }

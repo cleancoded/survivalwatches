@@ -855,3 +855,620 @@
 3.7.4 - 2017-04-13 - Chris Jean
 	Bug Fix: Fixed a timing issue that prevented Privilege Escalation from giving the escalated user access to Appearance > Customize.
 	Bug Fix: Reimplemented support for some removed reCAPTCHA class functions to fix a compatibility issue with iThemes Exchange.
+3.7.5 - 2017-05-15 - Chris Jean
+	Bug Fix: Updated reCAPTCHA logic to fix a compatibility issue with iTheme Exchange's usage of Security's reCAPTCHA feature.
+3.8.0 - 2017-05-25 - Chris Jean & Timothy Jacobs
+	New Feature: Added support for iThemes Sync to run the Security Check feature from inside the Sync service.
+	Bug Fix: Fixed the ability to manually enter a page number to navigate to on the Security > Logs page.
+	Bug Fix: Fixed source of warning that could appear when creating a backup while running a PHP version less than 5.4.
+	Bug Fix: Fixed source of notice that could appear when reseting a user's password when the Strong Passwords Enforcement feature is enabled.
+	Bug Fix: Fixed bugs that prevented reporting of specific error messages related to updating the wp-config.php file.
+	Misc : Updated or added phpDoc to many functions.
+3.9.0 - 2017-06-06 - Chris Jean
+	New Feature: Added support for iThemes Sync to import and export settings.
+4.0.0 - 2017-06-21 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed an infinite loop that could occur when expiring a cookie and Hide Backend is enabled.
+	Bug Fix: Fixed compatibility issue with the Jetpack plugin when Hide Backend is enabled which could prevent Jetpack from redirecting users to the wordpress.com login page.
+	Bug Fix: Fixed issue where access to wp-admin/admin-post.php when Hide Backend is enabled.
+	Enhancement: Centralized shared code used by Password Expiration, Two-Factor Authentication, and User Security Check.
+	Enhancement: Improved efficiency of Hide Backend code, increasing site performance when the feature is enabled.
+	Enhancement: Enforce strong passwords during log-in. Can be disabled via the ITSEC_DISABLE_PASSWORD_REQUIREMENTS constant.
+	Enhancement: Use canonical roles library to determine if a new user or an updated role requires a strong password.
+	Enhancement: Introduce password requirements module to centralize handling of password updates.
+	Misc: Updated Disable File Locking description.
+4.1.0 - 2017-07-05 - Chris Jean & Timothy Jacobs
+	Important: The way that Hide Backend functions changes in this release. Previously, if your Hide Backend Login Slug was wplogin, going to example.com/wplogin would result in the URL remaining example.com/wplogin. The new implementation of this feature results in a redirect to a URL that looks as follows: example.com/wp-login.php?itsec-hb-token=wplogin. While this may not be desireable for some users, this change was necessary to fix longstanding compatibility issues with other plugins. Once you access the login page using the Login Slug page, a cookie is set with an expiration time of one hour. As long as the cookie remains, you can access example.com/wp-login.php without having to access the Hide Backend Login Slug first. If you wish to confirm that Hide Backend is working properly on your site, opening up a private browsing window is a quick way to test without having to log out and clear cookies.
+
+	Bug Fix: Update malware scan scheduling email settings when the admin user id is updated.
+	Bug Fix: Fixed compatibility of Two Factor with Jetpack's Single Sign On feature.
+	Bug Fix: Fixed issue that could prevent "Register" and "Lost your password?" links from working properly on the login page when Hide Backend is enabled.
+	Bug Fix: Fix fatal error when updating a profile.
+	Bug Fix: Fix strong passwords not being recognized as strong on the profile page.
+	Bug Fix: Fix fatal error when registering a new user without specifying a role ( iThemes Exchange ).
+	Bug Fix: Compatability with JetPack SSO and Password Requirements.
+	Bug Fix: Ensure viewport meta is defined when loading the password requirements update password form.
+	Bug Fix: Hide Backend is now compatible with Jetpack Single Sign On.
+	Bug Fix: Hide Backend now hides registration pages on multisite sites.
+	Enhancement: Add recaptcha support for WooCommerce.
+	Enhancement: Allow multiple recaptchas on a single page.
+	Enhancement: The Hide Backend hidden login URL is no longer leaked by password-protected content.
+	Enhancement: Allow for searching through modules and settings.
+	Enhancement: Link to other module settings pages without forcing the page to refresh.
+	Enhancement: Fire an action, "itsec_change_admin_user_id", when the admin user id changes.
+	Enhancement: Changed default Hide Backend Register Slug from wp-register.php to wp-signup.php since WordPress switched from using wp-register.php to wp-signup.php for registrations. This will not affect existing sites.
+	Enhancement: Hide Backend functions purely in PHP code now rather than relying half on PHP code and half on .htaccess and nginx.conf modifications. This allows Hide Backend to function on web servers and server configurations that it was previously not compatible with.
+	New Feature: Added support for the ITSEC_DISABLE_MODULES define.
+4.1.1 - 2017-07-05 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed password-protected posts not properly handling the password when Hide Backend is enabled.
+4.2.0 - 2017-07-24 - Chris Jean & Timothy Jacobs
+	New Feature: Added support for email notifications when automatic updates are installed.
+	Enhancement: Multisite Support for Settings Exports
+	Enhancement: Added warnings to the Version Management settings page if the system or site configuration could prevent automatic updates from working as expected.
+	Enhancement: Added support for validating the Recaptcha hostname by using the 'itsec_recaptcha_validate_host' filter.
+	Enhancement: Refresh module settings after an import has been completed.
+	Enhancement: Notify the user of invalid file paths for Log Files, Backups and NGINX Conf file during an import.
+	Enhancement: Replaced file locking with database locking. This method of locking is compatible with all systems as it does not require the ability to write files. It also allows for locking to work on sites that have multiple front-end servers with a shared database. Since file locking is no longer used, the Global Settings > Disable File Locking setting was removed.
+	Enhancement: Add "Copy to Clipboard" functionality for server and wp-config rules.
+	Bug Fix: Prevent 404s when following links in email notifications on a site with Hide Backend enabled.
+	Bug Fix: Ensure uninstall process is not run when another version of iThemes Security is still active.
+	Bug Fix: Fixed method of working around Hide Backend.
+	Bug Fix: Warnings are no longer generated when saving a user profile with a role of "No role for this site" selected.
+4.3.0 - 2017-08-07 - Chris Jean & Timothy Jacobs
+	Enhancement: Periodically retry malware scans when there is a temporary error with the scanning service before alerting users of the issue.
+	Enhancement: Improved compatibility for Recaptcha on the front-end on slower to load websites.
+	Removed Old Feature: Removed the "Replace jQuery With a Safe Version" feature as its use (protecting against a specific jQuery bug: https://bugs.jquery.com/ticket/9521) is many years old and is no longer a concern.
+	Bug Fix: Bumped version number of some scripts to ensure that they refresh properly.
+	Bug Fix: Fixed way to work around Hide Backend on some hosts.
+	Bug Fix: Bumped version number of some scripts to ensure that they refresh properly.
+4.4.0 - 2017-08-17 - Chris Jean & Timothy Jacobs
+	New Feature: Security Check now attempts to automatically determine the location of the remote IP in the $_SERVER variable in order to protect against IP spoofing.
+	New Feature: Security Check now attempts to automatically determine if the site supports https connections. If support is found, it asks the user if they wish to redirect http requests to https.
+	Enhancement: Changed Two Factor login confirmation code emails to avoid spam filters.
+4.4.1 - 2017-08-23 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed logical error that prevented backups from executing.
+	Bug Fix: Fixed issue that could cause database locks to flood the database.
+4.5.0 - 2017-08-31 - Chris Jean & Timothy Jacobs
+	New Feature: Introduces Magic Links module. Users can now request a magic login link when logging in during a brute force attack on their username.
+	New Feature: Added a new setting in WordPress Tweaks: "Login with Email Address or Username".
+	Enhancement: Host email images from the plugin instead of relying on iThemes servers to help email clients marking messages as spam or blocking images.
+	Bug Fix: Improved Recaptcha compatibility with WooCommerce.
+	Bug Fix: Error when searching for modules preventing modules from appearing.
+	Bug Fix: Use the wp_options table when acquiring locks in Multisite.
+	Bug Fix: Prevent duplicate daily digest emails on sites with high load.
+	Misc: Added Magic Links, a new Pro-only feature, to be activated by Security Check.
+	Misc: Rearranged modules to be listed alphabetically.
+4.5.1 - 2017-09-19 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed SQL query bug that resulted in the "Minutes to Remember Bad Login (check period)" setting being ignored.
+	Bug Fix: Fixed bug that prevents wp-admin/install.php blocking from working properly on nginx servers.
+	Bug Fix: Don't attempt to do an SSL redirect when WP CLI is running.
+4.6.0 - 2017-10-25 - Chris Jean, Timothy Jacobs and Saylor Bullington
+	New Feature: Introduces the Notification Center, a centralized place to manage and customize email notifications sent by iThemes Security.
+	Bug Fix: Corrected some Javascript and CSS links not generating correctly on Windows servers.
+	Bug Fix: Properly restrict Application Password's to read only REST API rqeuests when overriding the HTTP method used.
+	Bug Fix: Ensure scheduled malware scan cron hook is setup when the module is activated.
+	Tweak: Simplify script enqueuing for Two Factor.
+4.6.1 - 2017-10-26 - Chris Jean & Timothy Jacobs
+	Bug Fix: Only enable the Lockout email notification is the Daily Digest was previously disabled.
+	Bug Fix: Fix JavaScript error when loading the Notification Center on some systems.
+	Bug Fix: Don't store WP Error objects for mail errors preventing a fatal error for rare PHPMailer errors.
+	Bug Fix: Prevent error on upgrade warning the subject line was empty.
+	Bug Fix: Ensure file change notification is properly enabled/disabled on upgrade.
+	Bug Fix: Fallback to correct default subject lines.
+	Bug Fix: Don't enable all administrators as the recipients for emails where all custom email addresses did not have corresponding users.
+	Upgrade Routine: Properly enable lockout and file change notifications, uncheck all administrators as recipients when necessary.
+4.6.2 - 2017-11-01 - Chris Jean & Timothy Jacobs
+	Enhancement: Updated queries and prepare statements to account for changes to the esc_sql() function in WordPress 4.8.3.
+	Bug Fix: Fixed the File Change module being incorrectly enabled when upgrading.
+4.6.3 - 2017-11-02 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed source of the following warning: "mysql_real_escape_string() expects parameter 1 to be string, object given".
+4.6.4 - 2017-11-06 - Chris Jean & Timothy Jacobs
+	Bug Fix: Don't display file change admin notifications if the Notify Admin setting is not enabled.
+4.6.5 - 2017-11-27 - Chris Jean & Timothy Jacobs
+	Enhancement: Preserve notification settings when the responsible module is deactivated.
+	Bug Fix: Process 404 lockouts on the 'wp' hook to prevent a headers have already been sent warning message.
+	Bug Fix: Ensure Hide Backend emails are properly sent when activating Hide Backend before saving the Notification Center for the first time.
+	Bug Fix: Prevent warning from being issued on new installs by allowing previous settings to be preserved if they exist.
+	Bug Fix: Better handle WP_Error objects in mail errors that occurred before updating to first patch release.
+	Bug Fix: A non static method was being called statically.
+4.7.0 - 2017-12-07 - Chris Jean & Timothy Jacobs
+	New Feature: Introduces a scheduling framework for handling events. Cron is now used by default, and will switch to using an alternate scheduling system if it detects an error. To disable this detection set ITSEC_DISABLE_CRON_TEST in your wp-config.php file.
+	Important: The ITSEC_FILE_CHECK_CRON and ITSEC_BACKUP_CRON constants have been deprecated. Use ITSEC_USE_CRON instead.
+	Bug Fix: Fix occasional duplicate backups and file scans.
+4.7.1 - 2017-12-11 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed issue where scheduled events could repeat on sites that do not properly support WordPress's cron system.
+4.7.2 - 2017-12-28 - Chris Jean & Timothy Jacobs
+	Bug Fix: Make Cron scheduler available in more circumstances.
+	Bug Fix: Events with the Twice Daily schedule would not be carried over when switching scheduler strategies.
+	Bug Fix: Backup schedules respect the interval chosen.
+	Bug Fix: Prevent multiple cron tests from being scheduled at once.
+	Bug Fix: Cron test being stuck in a loop preventing a site from switching back to the cron scheduler.
+	Bug Fix: Prevent warnings when a single and recurring event were scheduled at the same time.
+	Tweak: Sort scheduled events in WP CLI command.
+4.7.3 - 2017-01-04 - Chris Jean & Timothy Jacobs
+	Enhancement: Add 'site_title' as an available tag for the Two Factor email.
+	Bug Fix: Fix scheduling retries for Malware Scans on sites that don't fully support WordPress's cron system.
+	Bug Fix: Reactivating Away Mode now replaces the active file if you had previously removed it.
+	Bug Fix: Ensure lockouts take effect immediately, even on systems where changes to server configuration files do not take effect immediately.
+	Bug Fix: Warning on new installations when activating certain Version Management features.
+4.7.4 - 2017-01-29 - Chris Jean & Timothy Jacobs
+	New Feature: Online Files Comparison now supports WordPress.org plugins.
+	Enhancement: Add support for changing position of the Invisible Recaptcha badge.
+	Enhancement: Display user lockouts in Lockout Sidebar.
+	Tweak: Use the current site URL instead of the network URL when sending Two Factor Email codes.
+	Bug Fix: Fixed issue that could prevent Sync from loading Malware Scan results if a scan previously failed.
+	Bug Fix: Fixed method that could be used to discover hidden login slug on some sites.
+	Bug Fix: Hide Backend notifications not being properly sent when first enabled.
+	Bug Fix: Load translations on the plugins_loaded hook.
+	Bug Fix: Log logins with User Logging when logging in with Two Factor.
+	Bug Fix: Prevent login page being hidden when following the "Confirm Email Address" notification URL.
+	Bug Fix: Update to the REST API "Restricted Access" feature to protect against methods to work around the restricted access.
+4.8.0 - 2017-02-08 - Chris Jean & Timothy Jacobs
+	Enhancement: Updated logging system to keep track of more information and have more options to filter and sort log entries.
+	Enhancement: Improved efficiency of File Change Detection scanning.
+	Enhancement: Added malware scan support for scanning all sites in a Multisite Network.
+	Bug Fix: Fixed issue that could register loading the logging page as a failed login attempt on some sites.
+4.8.1 - 2017-02-08 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed schema issue with new logs table.
+4.8.2 - 2018-02-12 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed "undefined offset" error when displaying specific migrated old log entries.
+4.8.3 - 2018-02-12 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed issue that could cause login attempts to bypass recaptcha protection.
+4.8.4 - 2018-02-21 - Chris Jean & Timothy Jacobs
+	Enhancement: Cleaned up styling in settings to make some settings stand out better.
+	Minor: Use plugin build for cache busting assets.
+	Minor: Extract scheduling loop system to iThemes Security Core for future development.
+	Bug Fix: Fixed issue preventing the Two-Factor override from iThemes Sync from working as expected.
+	Bug Fix: Cannot use object of type WP_Error as array in Malware Scanner.
+	Bug Fix: Reordered loading of logging class to allow for logging earlier.
+4.8.5 - 2018-03-01 - Chris Jean & Timothy Jacobs
+	Security Fix: Fixed display of unescaped data on logs page. Thanks to Paweł Kuryłowicz from SecuRing for finding and reporting this issue.
+	Enhancement: The logging system now differentiates between WP-CLI commands, WP-Cron scheduled events, and normal page requests.
+	Bug Fix: Fixed the File Change scanner in that it previously could fail to exclude selected directories on some systems.
+4.8.6 - 2018-03-06 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed situation that could cause lockout notifications being sent for whitelisted IPs.
+	Bug Fix: Fixed issue where saving Global Settings would be blocked by an unwritable "Path to Log Files" path when the "Log Type" is set to "Database Only".
+	Bug Fix: Fixed issue that prevented log database entries from purging and log file entries from rotating on a schedule.
+4.8.7 - 2018-03-20 - Chris Jean & Timothy Jacobs
+	New Feature: Add WP CLI commands for running the Security Check Scan, managing Modules and enrolling in Network Brute Force.
+	Bug Fix: When using the Cron scheduling system, malware scans that had failed and been scheduled to retry would fail to reschedule the original scan event upon success.
+	Bug Fix: Added ability to show object data for classes that are not loaded to the Logs page.
+	Bug Fix: Fixed logging system references to "fatal-error" that should be "fatal".
+	Bug Fix: Prevent PHP warning when completing database backups that are not emailed to any recipients.
+	Bug Fix: Prevent PHP warning about converting an array to a string when adding notification data.
+4.9.0 - 2018-03-29 - Chris Jean & Timothy Jacobs
+	Enhancement: File Change Scan uses a new batching mechanism to prevent crashing on hosts but still generating only one report per-day.
+	Minor: Updated list of File Change excluded file types to include more media extensions.
+	Minor: File Scan "chunk" option is removed.
+	Minor: Specifying a manual file scan list has been removed.
+	Minor: Security Digest now includes all lockouts that have occurred since the last email.
+	Bug Fix: Don't prompt for security check when visiting the settings page after running the security check WP CLI command.
+4.9.1 - 2018-03-30 - Chris Jean & Timothy Jacobs
+	Bug Fix: Prevent WP admin dashboard JavaScript from crashing when the File Change module is not loaded.
+	Minor: Track raw memory used by the file change scanner as well.
+	Minor: Page Load Scheduler: Unschedule single events before running them. This mirrors the behavior of the WP Cron scheduler.
+4.9.2 - 2018-04-04 - Chris Jean & Timothy Jacobs
+	Bug Fix: Warning when uninstalling a plugin while File Change module is active.
+	Minor: Shrink storage size of file scans.
+	Minor: Make recovering file scan log smaller.
+5.0.0 - 2018-04-12 - Chris Jean & Timothy Jacobs
+	New Feature: Added Grade Report, a tool to identify security weaknesses on the site with options to fix the detected issues.
+	Bug Fix: Ensure all users with the `manage_options` capability are available when selecting contacts in the Notification Center.
+	Enhancement: Added minimal API for adding additional entries to the Security admin menu.
+5.0.1 - 2018-04-12 - Chris Jean & Timothy Jacobs
+	Big Fix: Fixed a fatal error condition that could occur on the Grade Report page when specific combinations of manual roles for Two-Factor Protection > User Type Protection were selected.
+5.0.2 - 2018-04-17 - Chris Jean & Timothy Jacobs
+	Tweak: Move Online Files hashes to a separate storage setting to improve performance on sites with large number of plugins or themes.
+	Tweak: Add description for File Change recovery related logs.
+	Tweak: Don't report removed files if the removal is caused by a new file extension being excluded.
+	Bug Fix: Improved detection of REST API requests on sites without a home dir.
+	Bug Fix: Improve File Change recovery system on high-traffic websites.
+	Bug Fix: Fix warnings on debug file change log items.
+5.1.0 - 2018-04-19 - Chris Jean & Timothy Jacobs
+	New Feature: Add Two-Factor On-Board flow.
+	Enhancement: Support disabling enforced Two-Factor the first time a user logs-in.
+	Enhancement: Introduced Login Interstitial framework to consolidate code between Password Requirements & Two Factor.
+	Bug Fix: Resolve warnings when upgrading file change settings.
+	Bug Fix: Allow read-only Application Passwords to make HEAD requests.
+5.1.1 - 2018-04-25 - Chris Jean & Timothy Jacobs
+	Enhancement: Allow for customizing access to the Application Passwords feature.
+	Misc: Added comment to prevent Tide from marking the plugin as not compatible with PHP 5.3.
+	Tweak: Differentiate between "Enforced Two-Factor" and "Configured Two-Factor" in User Security Check.
+	Bug Fix: Improve clearing of previous File Change file hashes.
+	Bug Fix: Internal links to a filtered logs page.
+	Bug Fix: Prevent duplicate "user-logged-in" log items when logging-in with Two Factor.
+	Bug Fix: Prevent multiple session tokens from being created when logging-in with Two Factor.
+	Bug Fix: Prevent missing provider information when logging a successful Two Factor authentication.
+	Bug Fix: Fixed incorrect detail text for Local Brute Force Protection on the Grade Report.
+5.1.2 - 2018-05-02 - Chris Jean & Timothy Jacobs
+	Tweak: Two-Factor Flow: Allow the user to proceed after downloading or copying the backup codes without dismissing the notice.
+	Tweak: File Change: Only scan a maximum of 10 plugins in a single chunk.
+	Tweak: File Change: Move "latest_changes" entry to a separate storage bucket to improve performance on large sites.
+	Bug Fix: Fix error on Multisite settings page when Two-Factor is not enabled.
+	Bug Fix: Properly enforce strong passwords when on the WP Login Reset Password page.
+	Bug Fix: Fix clearing or previous file scans results.
+	Bug Fix: iThemes Licensing: Fixed the "View details" link failing to work properly after updating.
+	Bug Fix: iThemes Licensing: Fixed an issue that could cause data changes to not save properly on specific background page requests.
+	Bug Fix: iThemes Licensing: Added a compatibility fix to avoid conflicts with plugins that change the plugin_action_links filter value from an array to a string.
+	Compatibility Fix: iThemes Licensing: Updated handing of wp_remote_get() response due to changes documented in https://core.trac.wordpress.org/ticket/33055.
+	Enhancement: iThemes Licensing: Added ability to manage licensing from WP-CLI.
+5.1.3 - 2018-05-03 - Chris Jean & Timothy Jacobs
+	Bug Fix: iThemes Licensing: Fixed fatal error that could occur when clicking the "View details" link for an available plugin update.
+5.1.4 - 2018-05-22 - Chris Jean & Timothy Jacobs
+	Enhancement: The number of users listed in the User Security Check model is now limited to 20 by default. This can be modified by using the itsec_user_security_check_users_per_page filter.
+	Enhancement: Introduce Distributed Storage framework for reducing the amount of data stored in the WordPress options table. This should improve performance for large sites using File Change.
+5.2.0 - 2018-05-24 - Chris Jean & Timothy Jacobs
+	New Feature: Added support for the new WordPress privacy features.
+	Enhancement: Removed sending the remote_ip argument to Google's reCAPTCHA server as it reduces the amount of personal information that is sent.
+	Bug Fix: Changed the rules generated by the Filter Suspicious Query Strings feature in order to avoid blocking privacy export/erasure request confirmations.
+5.2.1 - 2018-05-24 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed "Cannot modify header information - headers already sent" warning issue that could happen when using reCAPTCHA on sites that add customizations to the login page.
+	Bug Fix: Fixed an "Uncaught Error: Call to undefined function esc_like()" error that could occur when exporting or erasing personal data.
+	Bug Fix: Skip recovery if File Change storage is empty.
+5.2.2 - 2018-05-31 - Chris Jean & Timothy Jacobs
+	Enhancement: Add UI to cancel in progress File Scan.
+	Enhancement: Improved rendering of the Grade Report grade pie chart on HiDPI screens.
+	Enhancement: Include current grade in the Security Digest.
+	Tweak: Don't write to the tracked files setting if the file hash has not changed.
+	Tweak: Exclude File Change storage settings from Importer/Exporter.
+	Bug Fix: Ensure scheduling lock is cleared by the Cron Scheduler when not proceeding with running events.
+	Bug Fix: Away Mode would not lock out users who were already logged-in during the "away" period.
+	Bug Fix: Prevent File Change from getting stuck in an infinite rescheduling loop on the first step.
+	Bug Fix: Issue with Importing settings when File Change is active.
+5.3.0 - 2018-06-07 - Chris Jean & Timothy Jacobs
+	New Feature: Integration with Have I Been Pwned to prevent users from using passwords found in data breaches.
+	Enhancement: Introduce Password Requirements module for managing and enforcing password requirements.
+	Enhancement: Continually evaluate password strength for users instead of only during registration.
+	Enhancement: Add basic admin debug page to help diagnosing and resolving issues. Particularly with the events.
+	Bug Fix: Password strength would not be evaluated if password was set using custom PHP or CLI commands.
+	Bug Fix: Only hide "Acknowledge Weak Password" checkbox if the user was not allowed to use a weak password.
+	Bug Fix: Ensure Grade Report instructions in the Security Digest is accurate when the Grade score is capped.
+5.3.1 - 2018-06-11 - Chris Jean & Timothy Jacobs
+	Enhancement: Only pre-select Two-Factor methods during on-board process if the user requires Two-Factor. This should help prevent users from rolling through the on-board process too quickly.
+	Enhancement: Show if a "force password change" is in-effect and allow for the change to be removed.
+	Enhancement: Add debug settings JSON editor.
+	Tweak: If no last password change date is recorded for the user, treat their registration date as the last change date.
+	Bug Fix: If a password requirement has been disabled or is no longer available, don't consider the password as needing a change.
+	Bug Fix: Remove distributed storage table on uninstall.
+	Bug Fix: Don't display backup Two-Factor method form if it is not available to the user. Previously it would only be prevented from being submitted.
+5.3.2 - 2018-06-12 - Chris Jean & Timothy Jacobs
+	Bug Fix: Accessing password requirement settings would not resolve properly in some instances.
+5.3.3 - 2018-06-18 - Chris Jean & Timothy Jacobs
+	Security Fix: Fixed SQL injection vulnerability in the logs page. Note: Admin privileges are required to exploit this vulnerability. Thanks to Çlirim Emini, Penetration Tester at sentry.co.com, for reporting this vulnerability.
+	Tweak: Recommend Strong Passwords and Refuse Compromised Passwords in the Grade Report.
+	Bug Fix: Provide default values for enabled requirements.
+5.3.4 - 2018-06-27 - Chris Jean & Timothy Jacobs
+	Enhancement: Add mitigation for the WordPress Attachment File Traversal and Deletion vulnerability.
+	Tweak: Display the subject line of the Two-Factor Email when logging in.
+	Tweak: Fire a WordPress action whenever settings are updated.
+	Bug Fix: Improved input sanitization on the logs page to prevent triggering warnings.
+	Bug Fix: Don't track post status transitions to the identical post status.
+5.3.5 - 2018-07-09 - Chris Jean & Timothy Jacobs
+	Enhancement: Add setting to customize On-Board text.
+	Enhancement: Require user to confirm Two-Factor email method when signing up via On-Boarding. Can be disabled by disabling the new Two-Factor Email Confirmation email in the Notification Center.
+	Enhancement: Add setting for customizing who is required to use two-factor when "Vulnerable User Protection" and "Vulnerable Site Protection" are enabled and who is presented the On-Board flow.
+	Tweak: Check if an IP is blacklisted on page load for compatibility with servers that cannot process server configuration level bans immediately.
+	Bug Fix: Provide better error messages in case the server for SSL support detection is non-responsive.
+5.4.0 - 2018-07-17 - Chris Jean & Timothy Jacobs
+	New Feature: Granular Version Management control. Select which plugins or themes to auto-update. Optionally, use the delay feature to wait for a release to be stable for a certain number of days for sensitive or critical plugins.
+	New Feature: Optionally, receive an email notification whenever your Grade Report changes. A maximum of once per-day.
+	Tweak: Grade report notice styling and disable the "Resolve Issues" button when working.
+	Tweak: Add Security Check Pro debug page.
+	Tweak: Display a time diff until the next event on the Debug page.
+	Compatibility Fix: 404 detection for plugins that mark is_404 later in the hook sequence.
+	Bug Fix: Plugin and theme updates were hidden after updating a single package via the Grade Report.
+	Bug Fix: Correct grammar for Email Two-Factor method.
+	Bug Fix: Warning when using Grade Report when the Password Requirements module is disabled by constant.
+	Bug Fix: The Dashboard Widget did not count users who didn't have a primary provider set.
+	Bug Fix: Show "File Scan" button on dashboard widget even if "Write to Files" is disabled.
+5.4.1 - 2018-07-24 - Chris Jean & Timothy Jacobs
+	Enhancement: Log Plugin activation/deactivation/uninstall and Theme switching in the User Logging module.
+	Enhancement: Log WordPress, Plugin and Theme installs & updates in the Version Management module.
+	Tweak: Use Logging API for tracking Notification Center errors.
+	Tweak: Register Scheduler Events whenever the plugin build changes.
+	Tweak: Allow for filtering logs by any module recorded.
+	Bug Fix: Account for any CLI PHP SAPI instead of just WP-CLI in the SSL Module.
+	Bug Fix: Incorrect notice for delayed plugins if the custom per-plugin setting had been switched off.
+	Bug Fix: Incorrect User Logging log when logging in via the Login Interstitial framework.
+5.4.2 - 2018-07-31 - Chris Jean & Timothy Jacobs
+	New Feature: Allow for globally setting recipients for admin-targeted notifications. All new notifications will default to the recipients in this list. Notifications can be set to use the default list or switch to a custom list.
+	Enhancement: Allow for disabling Grade Report for certain users. This will hide the Grade Report in the admin and remove it from the Security Digest sent to those users. If one of these users is configured to receive the "Grade Report Change" email they WILL still receive that notification.
+	Tweak: Account for 3rd-party Backup Plugin in Security Check.
+	Tweak: On upgrade, disable "Grade Report Change" email when more than one recipient is designated to receive the notification.
+5.4.3 - 2018-08-01 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fix serialization of closure error when a plugin registering a hook with a closure is in the boot-up stack and the notification center is triggered too early in the cycle.
+5.4.4 - 2018-08-06 - Chris Jean & Timothy Jacobs
+	Enhancement: Added a setting to enable/disable the Grade Report feature of Pro.
+5.4.5 - 2018-08-07 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fixed how the Grade Report enable/disable status is stored to fix admin page loading issues on some sites.
+5.4.8 - 2018-08-14 - Chris Jean & Timothy Jacobs
+	Enhancement: Add schedule options to the "Grade Report Change" email.
+	Bug Fix: Don't send "Grade Report Change" email if the grade is reverted back to the original grade during the waiting period before sending the notification.
+	Bug Fix: Plugins were deactivated when updating through Grade Report.
+	Bug Fix: REST API Protection blocked the Taxonomies route for all users.
+5.5.0 - 2018-10-02 - Chris Jean & Timothy Jacobs
+	New Feature: Trusted Devices identifies the devices users use to login and can apply additional restrictions to unknown devices.
+	Enhancement: Allow a device to be remembered and bypass Two-Factor for 30 days. Requires "Trusted Devices" to be active.
+	Enhancement: Display Recaptcha in the wp_login_form() template function.
+	Enhancement: Block access to git and svn repositories when System Tweaks -> Protect System Files is enabled.
+	Tweak: Update jQuery Validation library to 1.17.0
+	Tweak: Don't require Two-Factor on-boarding if the user is required to use Two-Factor because of a vulnerable site.
+	Tweak: Update jQuery Validation library to 1.17.0
+	Bug Fix: Improve detection of blocking the File Change Scan from being scheduled if one is already being run.
+	Bug Fix: Prevent infinite recursion error when trying to access directories outside of the allowed file tree.
+	Bug Fix: Grade Report styling issue on IE 11.
+5.5.1 - 2018-10-05 - Chris Jean & Timothy Jacobs
+	Tweak: Delete a user's device fingerprints when their account is deleted.
+	Bug Fix: Ensure you can save Two-Factor when "Trusted Devices" is disabled on a new site.
+5.5.2 - 2018-10-10 - Chris Jean & Timothy Jacobs
+	Enhancement: Allow for selecting the particular Proxy header a server is configured to use. Improve the language to indicate the importance of configuring this setting. H/t Filippo Cavallarin CEO at wearesegment.com
+5.5.3 - 2018-10-10 - Chris Jean & Timothy Jacobs
+	Bug Fix: Fix issue with saving Global settings if Security Check Pro has detected the correct Proxy Header to use.
+5.5.4 - 2018-11-01 - Chris Jean & Timothy Jacobs
+	Enhancement: Add support for displaying status messages about services that might be encountering issues without updating the plugin.
+	Enhancement: Add support for suppressing malware email notifications if the Malware Scanner is experiencing wide spread issues without updating the plugin.
+5.5.5 - 2018-12-04 - Chris Jean & Timothy Jacobs
+	Enhancement: Add Per-Content SSL toggle to the upcoming Block Editor interface.
+	Enhancement: Add filter to the recipients list for email notifications: "itsec_notification_{$notification}_email_recipients" and "itsec_notification_email_recipients".
+	Enhancement: Detect Server IPs in Security Check.
+	Enhancement: Update jquery.file-upload plugin to the latest version ( 9.28.0 ).
+	Tweak: Improve File Change locking to help prevent failing scans on sites with inconsistent cron scheduling.
+	Tweak: Improve "System Tweaks – Suspicious Query Strings – SQLI" to reduce false positives.
+	Tweak: Improve "System Tweaks – Disable PHP" to block PHP files in apache configurations that serve files with a trailing dot.
+	Tweak: Add additional safety checks when writing to system config files.
+	Tweak: Remove "Seznam Bot" from HackRepair List as it isn't present in the latest version.
+	Tweak: Add Recaptcha Opt-in styles wherever the recaptcha is displayed, not just WP Login.
+	Bug Fix: Notification Center - Only send notifications to users with an exact role match of selected roles instead of a fuzzy match based on selected capabilities.
+	Bug Fix: Resolve warnings on PHP 5.2.
+	Bug Fix: Don't run Trusted Devices checks on authenticated loopback requests. Please re-run "Security Check" to initialize this detection. This should resolve conflicts with plugins that make authenticated loopback requests as a form of async processing.
+	Bug Fix: Persist and reload storage to avoid Imported settings being lost in some circumstances.
+	Bug Fix: Trigger module activation/deactivation routines when using the Importer.
+	Bug Fix: Remove "Nekudo" GeoIP service as it has been sunset.
+5.5.6 - 2018-12-04 - Chris Jean & Timothy Jacobs
+	Bug Fix: Don't try to get users with the selected role if no roles are selected.
+5.5.7 - 2018-12-06 - Chris Jean & Timothy Jacobs
+	Tweak: Use new "determine_locale()" function for loading the plugin textdomain.
+	Bug Fix: Update Grade Report Software version fallback data.
+5.5.8 - 2018-12-11 - Chris Jean & Timothy Jacobs
+	Bug Fix: Only re-add Trusted Devices restricted capabilities filter if it was registered in the first place.
+	Bug Fix: Error when trying to edit reusable blocks with per-post SSL enabled.
+5.6.0 - 2019-01-10 - Chris Jean & Timothy Jacobs
+	New Feature: Introducing the iThemes Security Dashboard. See a real-time overview of the security activity on your website with this dynamic dashboard. Turn it on by activating the Security Dashboard module.
+	Enhancement: Add loopback IP detection to Security Check.
+	Enhancement: Add define "ITSEC_DISABLE_TEMP_WHITELIST" to disable the Temporary IP Whitelisting for logged-in administrators.
+	Tweak: Only run Remote Messages API on Pro versions.
+5.6.1 - 2019-01-14 - Chris Jean & Timothy Jacobs
+	Bug Fix: Prevent dashboard error when the "Show Avatars" setting is disabled.
+	Bug Fix: Styling issue that made "Identified Loopback IP" look like an error message instead of a success.
+5.7.0 - 2019-01-16 - Chris Jean & Timothy Jacobs
+	New Feature: reCAPTCHA v3 support. Can toggle between loading the api on all pages ( recommended ) or only the required pages. Adjust the Block Threshold from the recommended default of "0.5" based on the data in the Google reCAPTCHA console.
+	New Feature: On page reCAPTCHA opt-in to allow users to agree to Google's ToS without refreshing the page.
+5.8.0 - 2019-02-13 - Chris Jean & Timothy Jacobs
+	New Feature: Add "Click to Continue" button to email Two-Factor method to simplify usage.
+	Enhancement: Don't require logging in again after overriding Two-Factor in Sync in mid-login.
+	Enhancement: Improve redirecting after processing a login interstitial from a front-end login form.
+	Tweak: Add display description for log when safe guarding against an empty config file write.
+	Bug Fix: Include Hide Backend token when emailing a password reset URL.
+	Bug Fix: Duplicate key error when consolidating Dashboard Events.
+	Bug Fix: Fix Recaptcha opt-in CSS not always loading.
+5.9.0 - 2019-02-19 - Chris Jean & Timothy Jacobs
+	New Feature: A new dashboard widget powered by the iThemes Security Dashboard.
+	Bug Fix: Prevent "headers already sent" warning when logging in with the Two-Factor email method on certain systems.
+	Bug Fix: Tabnapping: Apply noopener to links instead of using blankshield script when available to prevent new pop-up blocker behavior from killing the links.
+5.9.1 - 2019-02-20 - Chris Jean & Timothy Jacobs
+	Enhancement: When ITSEC_DISABLE_MODULES is set, prevent hide backend from running.
+	Bug Fix: Error on the WordPress dashboard screen when the Security Dashboard module does not completely load.
+5.9.2 - 2019-02-20 - Chris Jean & Timothy Jacobs
+	Bug Fix: Load new dashboard widget on Multisite network admin dashboard properly.
+5.9.3 - 2019-03-12 - Chris Jean & Timothy Jacobs
+	Important: Replace Google QR Code API with an iThemes Security hosted solution. Google's API will be shutdown on March 14th, 2019. If you'd like to generate QR codes locally, a plugin is available in the members panel under "Plugins": iThemes Security - Local QR Code.
+	Enhancement: Add support for deleting dashboards.
+	Enhancement: Order cards in the dashboard widget in the same order as the mobile breakpoint in the Security Dashboard.
+	Enhancement: New WP-CLI command for retrieving, releasing and creating lockouts.
+	Tweak: Improve dashboard a11y.
+	Tweak: Improve dashboard performance by decreasing the bundle size, improving cache stability, and async loading less used libraries.
+	Tweak: Allow the log description column to word break for URLs or other strings with no spaces.
+	Bug Fix: Hide Backend bypass on certain Apache configurations.
+	Bug Fix: Properly return error that occurs during a backup.
+	Bug Fix: Regex warning on PHP 7.3 in the File Change module.
+	Bug Fix: Resolve warning when a user is set to "No Role".
+	Bug Fix: Removing the last role or user from a shared dashboard would not work.
+5.9.4 - 2019-03-22 - Chris Jean & Timothy Jacobs
+	Bug Fix: Hide backend bypass.
+5.9.5 - 2019-05-06 - Chris Jean & Timothy Jacobs
+	Bug Fix: For WordPress 5.2 installs, prevent updating a plugin via Grade Report if the new plugin update has PHP version requirements that are not met.
+6.0.0 - 2019-05-30 - Chris Jean & Timothy Jacobs
+	New: iThemes Security Admin Notices are now conveniently located in the new Security Messages Menu. Check your notices in the Security menu on the WordPress Admin Bar.
+	Enhancement: Add filters to customize the available Two Factor providers for a user.
+	Enhancement: Add a dismissible warning if iThemes Security isn't licensed.
+	Tweak: Remove "pin" link from a Security Profile when that profile has already been pinned.
+	Tweak: Remove 'DELETE' method from "System Tweaks -> Filter Request Methods"
+	Tweak: Minor UI and a11y improvements to the Security Dashboard.
+6.0.1 - 2019-06-06 - Chris Jean & Timothy Jacobs
+	Enhancement: Add Security Message when a Notification Center email fails to send.
+	Enhancement: Add Security Message when the Malware Scanner finds malware or encounters an error.
+	Enhancement: Replace Trace IP with IP Tracker Online.
+6.0.2 - 2019-06-28 - Chris Jean & Timothy Jacobs
+	Enhancement: New iThemes Sync Verb support for File Change.
+	Tweak: Add additional information about the login attempt when calling the Network Brute Force API.
+	Bug Fix: Ensure Dashboard classes are always loaded.
+6.0.3 - 2019-08-12 - Chris Jean & Timothy Jacobs
+	Enhancement: new iThemes Sync Verb support for overriding a specific Two-Factor request.
+	Bug Fix: Hide Backend Bypass.
+	Bug Fix: Strict Standards error during Sync request.
+	Bug Fix: wp_die() if a login interstitial session fails to be created instead of throwing a fatal error.
+6.1.0 - 2019-09-04 - Timothy Jacobs
+	Breaking Change: iThemes Security requires PHP 5.4 or later.
+	New Feature: Make WordPress Security Easy With Passwordless Logins
+	Enhancement: Make Magic Links work in a wider variety of situations.
+	Enhancement: New Lockout Template screen.
+	Bug Fix: WordPress 5.3 Compatibility
+	Bug Fix: Brute Force module reporting invalid logins using an email address incorrectly.
+	Developer Note: There were significant changes to the internals of the iThemes Security Lockout API in this release. If you are using the ITSEC_Lockout class directly, all the API functions will continue to work, but will emit deprecation notices. Please update your integrations.
+6.1.1 - 2019-09-05 - Timothy Jacobs
+	Bug Fix: PHP Warning while logging interstitial updates.
+6.1.2 - 2019-09-09 - Timothy Jacobs
+	Enhancement: Add confirmation button to Passwordless Login or One-Click Two-Factor when on a different device than you started with. When Trusted Devices is active, include information about the device the login will be processed on.
+	Bug Fix: Fix Passwordless Login release notice not being dismissed due to a REST API route that was more narrowly defined than necessary.
+6.1.3 - 2019-10-01 - Timothy Jacobs
+	Bug Fix: Strong Passwords zxcvbn Library was not evaluating penalty strings correctly.
+6.2.0 - 2019-10-29 - Timothy Jacobs
+	New Feature: Integrate Passwordless Login with WooCommerce, Easy Digital Downloads, and Lifter LMS.
+	Enhancement: Add filter to "Lookup IP" link.
+	Bug Fix: PHP warning when inserting lockouts.
+	Bug Fix: WooCommerce Shop Managers were unable to verify their Two-Factor Mobile App code via their WP-Admin profile.
+	Bug Fix: WordPress 5.3 compatibility with Passwordless Login.
+6.2.1 - 2019-11-01 - Timothy Jacobs
+	Bug Fix: Error when saving Passwordless Login settings page when no integrations are available.
+6.2.2 - 2019-11-12 - Timothy Jacobs
+	Bug Fix: Improve lockout compatibility with caching plugins.
+	Bug Fix: Admin Notices list did not refresh after dismissing a notice.
+	Bug Fix: Fix PHP warning if there are multiple detected proxy headers.
+6.2.3 - 2019-11-14 - Timothy Jacobs
+	Tweak: Add stub Passwordless Login settings page for WordPress.org users.
+	Bug Fix: PHP warning if lockout_active field is missing.
+6.2.4 - 2019-11-18 - Timothy Jacobs
+	Bug Fix: The username first Passwordless Login flow was not working on WordPress 5.3
+6.3.0 - 2019-12-09 - Timothy Jacobs
+	Enhancement: Run Security Check Pro IP Detection automatically once a day.
+	Enhancement: Manually re-run Security Check Pro IP Detection from the Global Settings page.
+6.3.1 - 2019-12-10 - Timothy Jacobs
+	Bug Fix: Properly notate that iThemes Security requires PHP 5.5 or greater.
+6.3.2 - 2019-12-12 - Timothy Jacobs
+	Enhancement: Allow LastPass to autofill password fields.
+	Bug Fix: Passwordless Login would trip some ModSecurity rules when used with LastPass autofill.
+	Bug Fix: The username first Passwordless Login flow was not working on WordPress 5.3 if the user did not have permission to use Passwordless Login.
+	Bug Fix: Harden Version Management against plugins that were populating invalid update API data.
+	Bug Fix: The "Mulisite Tweaks -> Hide Updates" setting prevented auto-updates from running with WP Cron.
+	Bug Fix: Remove "get_magic_quotes()" call that existed for backwards compatibility with PHP versions 5.3 and earlier. This function call was causing a warning on PHP 7.4.
+6.3.3 - 2020-01-07 - Timothy Jacobs
+	Important: Updated Trusted Devices MaxMind GeoLite2 integration to account for their new Terms of Service to account for the CCPA. Users must now provide a free license key when using the MaxMind GeoLite2 Geolocation method.
+	Bug Fix: Backup event was not added when the WP Cron Scheduler was reset manually.
+	Bug Fix: Admin Notices Popover was not being hidden when clicking outside the Popover on WP 5.3.
+6.4.0 - 2020-02-12 - Timothy Jacobs, Josh Oakes
+	Important: iThemes Security requires PHP 5.6 or greater and WordPress 5.2 or greater.
+	New Feature: Save Time Securing WordPress With User Groups!
+	New Feature: Simplified connection flow when setting up iThemes Sync.
+	Bug Fix: Warning when loading the settings page on PHP 7.4.
+	Bug Fix: Warning when loading the debug page on PHP 7.4.
+6.4.1 - 2020-02-13 - Timothy Jacobs
+	Bug Fix: A fatal error could occur when upgrading to User Groups if a custom role had been selected for Two-Factor or Passwordless Login that has since been deleted but the module's settings had not been updated.
+6.4.2 - 2020-02-17 - Timothy Jacobs, Josh Oakes
+	Tweak: Harden iThemes Sync connection flow by adding a second verification check.
+	Bug Fix: Prevent UnknownIdentifierException errors when modules are loaded before expected.
+	Bug Fix: Add additional type checks.
+6.5.0 - 2020-03-10 - Timothy Jacobs
+	Enhancement: Add super admins as a selectable role for User Groups.
+	Enhancement: Add reCAPTCHA to the Reset Password form.
+	Enhancement: Add support for resending a Two-Factor Email code.
+	Enhancement: Add support for resending a Passwordless Login email.
+	Enhancement: Allow selecting users across all sites in a network for User Groups, Security Profile cards, and User Security Check.
+	Enhancement: Include all super admins by default in the Security Profile card, even if they are not a member of the network's main site.
+	Enhancement: Display all of a user's roles in the Security Profile card.
+	Enhancement: When logging in with Passwordless Login, skip Two-Factor if the primary Two-Factor method is Email.
+	Enhancement: Force a space after each Two-Factor Backup Code to assist with copying and pasting.
+	Enhancement: Include the website URL in the download file for Two-Factor Backup Codes.
+	Enhancement: Add a warning if a WordPress Salt is set to an invalid value.
+	Enhancement: Allow re-entering the Two-Factor Onboard flow even after Two-Factor is setup by visiting /wp-login.php?itsec_after_interstitial=2fa-on-board directly.
+	Enhancement: Add a new WP CLI command for managing user Two-Factor enrollment.
+	Enhancement: Add a new WP CLI command for retrieving logs.
+	Enhancement: Include child log items in the logs list table. These are helpful for debugging issues.
+	Enhancement: Improve performance of the logs page on sites with large number of log items.
+	Tweak: Only show Lockout Bypass Magic Link for valid users.
+	Tweak: When logging $_SERVER, only log a snapshot of available properties.
+	Bug Fix: New Password Requirements for already created accounts were not enforced until the second login.
+	Bug Fix: User Security Check would not display in Multisite.
+	Bug Fix: Prevent fatal error if invalid user IDs are encountered by User Groups.
+	Bug Fix: Infinite loop when trying to use Application Passwords on Multisite.
+	Bug Fix: User Logging did not correctly capture the user id of the logged-out user on WordPress 5.3.
+	Bug Fix: Warnings when doing a settings import.
+	Deprecated: The "getlockouts", "releaselockout", and "getrecent" WP CLI commands. Use the "lockout" and "log" commands instead. They will be removed in a future release.
+6.5.1 - 2020-03-11 - Timothy Jacobs
+	Bug Fix: Due to a Google reCAPTCHA API change, trying to use v3 or Invisible reCAPTCHA may have always resulted in the "You must submit the reCAPTCHA to proceed. Please try again." error. You may have to empty your server cache or browser cache to receive the fix.
+	Enhancement: Further improve logs performance.
+6.5.2 - 2020-03-31 - Timothy Jacobs
+	Bug Fix: Update security dashboard and admin notices styling to be compatible with WordPress 5.4.
+	Bug Fix: Periodically clear expired opaque tokens.
+	Bug Fix: Exclude "Process Update" and "Process Stop" logs when other process logs are hidden.
+	Bug Fix: Exclude process logs from the Malware Scan card.
+	Tweak: Use dashicons instead of font-awesome, and native font stack instead of Open Sans on the Grade Report.
+6.5.3 - 2020-04-08 - Timothy Jacobs
+	Enhancement: Add LifterLMS support to the reCAPTCHA module.
+	Bug Fix: Don't block registration page when "wp-signup.php" is the Hide Backend register slug.
+6.5.4 - 2020-04-15 - Timothy Jacobs
+	Enhancement: Check tables exist after completing a DB upgrade.
+	Bug Fix: Users with weak passwords would not be forced to change their password if the strong password requirement had been enabled after their password strength was checked.
+6.5.5 - 2020-04-20 - Timothy Jacobs
+	Tweak: Deprecated Dashboard Widget has been removed.
+	Bug Fix: PHP warning when evaluating password requirements.
+6.5.6 - 2020-05-18 - Timothy Jacobs
+	Tweak: Ensure randomly generated passwords are considered strong by the Strong Passwords library.
+	Tweak: Suggest a 32 character password when forcing a password change.
+	Bug Fix: PHP warning when a user's email address is updated outside of the user edit admin page.
+	Bug Fix: Fix login interstitials on WP Engine when using a front-end login form.
+	Bug Fix: PHP warning when checking opaque tokens.
+	Bug Fix: PHP warning after succesfully connecting a site to iThemes Sync via the login connection flow.
+6.6.0 - 2020-06-10 - Timothy Jacobs
+	New Feature: The new, improved WordPress Security Site Scan powered by iThemes performs automatic checks for known website vulnerabilities and, if a patch is available, iThemes Security Pro can now automatically apply the fix for you.
+	Enhancement: Added support for muting specific vulnerability notifications. After performing a new site scan, click the link for details about a vulnerability. Then click the "mute" button to stop being notified about that particular issue.
+	Enhancement: Remove quick bans. Persist banned hosts to .htaccess or nginx.conf on an hourly schedule.
+	Tweak: Cap banned hosts persisted to .htaccess or nginx.conf to the most recent 100. This number can be adjusted with the "itsec_ban_users_max_hosts_for_server_config" filter. Older banned hosts will be locked out after WordPress loads.
+	Bug Fix: File Change Security Message would not appear for new installs.
+6.6.1 - 2020-07-08 - Timothy Jacobs
+	Enhancement: Add support for updating a plugin/theme directly from the Site Scanner vulnerability details page.
+	Tweak: Update site scanner notification language to be less alarming.
+	Tweak: Change insensitive language to be more inclusive.
+6.6.2 - 2020-08-06 - Timothy Jacobs
+	Enhancement: Disable the WordPress 5.5 Auto-Update UI when iThemes Security Version Management is being used to manage auto-updates.
+	Enhancement: Make the Site Scanner Report a configurable admin notice.
+	Tweak: Add a security message if a user needs to update their license information.
+	Tweak: Check if a licensed user is defined when checking license status.
+	Tweak: Use an opaque token for site scan verification to reduce invalid secret errors.
+	Bug Fix: Error when trying to run Security Check on new installations.
+6.6.3 - 2020-08-06 - Timothy Jacobs
+	Bug Fix: Bump lib/updater
+6.6.4 - 2020-08-07 - Timothy Jacobs
+	Bug Fix: Update lib/updater to the latest version. Fixed fatal error that can happen when upgrading to the 1.6.1 version of this code: Ithemes_Updater_Settings::get_licensed_site_url() in server.php:199".
+6.6.5 - 2020-08-13 - Timothy Jacobs
+	Bug Fix: On WordPress 5.5, use the new auto-update notification instead of the debug email.
+	Bug Fix: Updated lib/updater to 1.6.4 Added support for the auto-update feature introduced in WordPress 5.5.
+6.7.0 - 2020-09-16 - Timothy Jacobs
+	Important: iThemes Security requires WordPress 5.4 or later.
+	New Feature: Manage bans from the Security Dashboard with the new Banned Users card.
+	Enhancement: Support writing a note describing why a ban was added.
+	Enhancement: Store the time a ban was added, and the lockout module responsible for the ban.
+	Enhancement: Add a WP CLI command for managing bans, wp itsec ban.
+	Enhancement: Add a setting for configuring the number of bans added to the server config files (.htaccess/nginx.conf).
+	Bug Fix: PHP warnings when invalid entries are stored in the WordPress Cron storage.
+	Bug Fix: Update the list of tables added to wpdb.
+	Bug Fix: Remove default value for text columns. This caused an issue on MySQL 8 and is unnecessary.
+	Bug Fix: Missing borders in the sidebar widgets on WordPress 5.5.
+	Bug Fix: Notice actions didn't trigger when "Hide Admin Bar" is enabled.
+6.7.1 - 2020-09-24 - Timothy Jacobs
+	Enhancement: Add WP CLI command to run the Change Admin User tool.
+	Tweak: Disable SSL verification when performing the Security Check Loopback test. Some hosts can't properly verify loopback requests. This verification is unnecessary in this circumstance, and disabling SSL verification aligns iThemes Security with default WordPress loopback behavior.
+	Tweak: Override WordPress' built in auto update notices at a higher priority. This fixes issues with iThemes Security's settings being overwritten by other systems.
+	Bug Fix: Some users would be force to choose a strong password twice in a row.
+	Bug Fix: Warning when saving the Ban Users module outside of the Settings Page without passing the legacy host_list setting.
+	Bug Fix: Fix issues with initializing a site scan from a non-licensed domain name.
+6.8.0 - 2020-10-12 - Timothy Jacobs
+	New Feature: iThemes Security now supports Passwordless Login and reCAPTCHA v3 for Restrict Content Pro ( version 6.4.3 and later ).
+	Enhancement: Overwrite Restrict Content Pro's detected IP address with the IP detected by iThemes Security.
+	Tweak: Application Passwords compatibility with WordPress 5.6.
+	Bug Fix: Two Factor and Passwords Requirements compatibility with Restrict Content Pro.
+	Bug Fix: PHP warnings that may occur when initializing default user groups on a new installation.
+6.8.1 - 2020-11-05 - Timothy Jacobs
+	Bug Fix: Improved compatibility with WP Engine.
+	Bug Fix: Version Management compatibility with WordPress 5.6.
+	Bug Fix: Follow Core UI patterns for Application Passwords.
+	Bug Fix: Pass the `WP_Error` object to the `wp_login_failed` hook.
+6.8.2 - 2020-12-07 - Timothy Jacobs
+	Bug Fix: Version Management compatibility with further changes in WordPress 5.6.
+6.8.3 - 2020-12-16 - Timothy Jacobs
+	Tweak: Remove non-SSL fallbacks for Security Check Pro and Version Management.
+	Bug Fix: Tweak checkbox styles.
+	Security Improvement: To improve server compatibility, requests to the iThemes updater servers would automatically downgrade from https to http when https connections failed. This update removes the automatic downgrade. If your server cannot make outbound https connections, you can re-enable the downgrade capability by adding the following define in your site's wp-config.php file:
+		define( 'ITHEMES_ALLOW_HTTP_FALLBACK', true );
+6.8.4 - 2021-04-13 - Timothy Jacobs
+	Security: Fix Hide Backend Bypass, thanks to Julio Potier for reporting the issue.
+	Tweak: Add filters to short-circuit lock APIs.
+	Bug Fix: Prevent wp_no_robots deprecation warning on WordPress 5.7.

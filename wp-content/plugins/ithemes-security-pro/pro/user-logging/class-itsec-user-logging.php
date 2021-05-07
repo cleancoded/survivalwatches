@@ -1,62 +1,64 @@
 <?php
 
-class ITSEC_User_logging {
-	private $role_list;
-	private $settings;
+use iThemesSecurity\Contracts\Runnable;
+use iThemesSecurity\User_Groups;
+
+final class ITSEC_User_Logging implements Runnable {
+
+	/** @var User_Groups\Matcher */
+	private $matcher;
+
+	/** @var int */
+	private $current_user_id;
+
+	/**
+	 * ITSEC_User_Logging constructor.
+	 *
+	 * @param User_Groups\Matcher $matcher
+	 */
+	public function __construct( User_Groups\Matcher $matcher ) { $this->matcher = $matcher; }
 
 	public function run() {
-		$this->settings = ITSEC_Modules::get_settings( 'user-logging' );
-
-		//roles and subroles
-		$this->role_list = array(
-			'subscriber'    => array( 'subscriber', 'author', 'contributor', 'editor', 'administrator' ),
-			'contributor'   => array( 'author', 'contributor', 'editor', 'administrator' ),
-			'author'        => array( 'contributor', 'editor', 'administrator' ),
-			'editor'        => array( 'editor', 'administrator' ),
-			'administrator' => array( 'administrator' ),
-		);
-
-		add_action( 'init', array( $this, 'init' ) );
-		add_filter( 'itsec_logger_modules', array( $this, 'register_logger' ) );
-		add_action( 'wp_login', array( $this, 'wp_login' ) );
-	}
-
-	/**
-	 * Load logging hooks if needed by user level
-	 *
-	 * @since 4.2
-	 *
-	 * @return void
-	 */
-	public function init() {
-		$user = wp_get_current_user();
-
-		foreach ( $user->roles as $role ) {
-			if ( in_array( $role, $this->role_list[$this->settings['role']] ) ) {
-				add_action( 'wp_logout', array( $this, 'wp_logout' ) );
-				add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
-
-				return;
+		add_action( 'itsec_register_user_group_settings', [ $this, 'register_group_setting' ] );
+		add_action( 'wp_login', array( $this, 'wp_login' ), 11, 2 );
+		add_action( 'itsec_login_interstitial_logged_in', array( $this, 'interstitial_login' ) );
+		add_action( 'wp_logout', array( $this, 'wp_logout' ) );
+		add_action( 'itsec-two-factor-successful-authentication', array( $this, 'log_two_factor_authentication' ), 10, 2 );
+		add_action( 'transition_post_status', array( $this, 'transition_post_status' ), 10, 3 );
+		add_action( 'user_register', array( $this, 'user_register' ) );
+		add_action( 'activated_plugin', array( $this, 'activated_plugin' ), 10, 2 );
+		add_action( 'deactivated_plugin', array( $this, 'deactivated_plugin' ), 10, 2 );
+		add_action( 'deleted_plugin', array( $this, 'deleted_plugin' ), 10, 2 );
+		add_action( 'switch_theme', array( $this, 'switch_theme' ), 10, 3 );
+		add_action( 'set_current_user', function () {
+			if ( $user_id = get_current_user_id() ) {
+				$this->current_user_id = $user_id;
 			}
-		}
+		} );
+	}
+
+	public function register_group_setting( User_Groups\Settings_Registry $registry ) {
+		$registry->register( new User_Groups\Settings_Registration( 'user-logging', 'group', User_Groups\Settings_Registration::T_MULTIPLE, static function () {
+			return [
+				'title'       => __( 'Activity Monitoring', 'it-l10n-ithemes-security-pro' ),
+				'description' => __( 'Track and log individual user activity.', 'it-l10n-ithemes-security-pro' ),
+			];
+		} ) );
 	}
 
 	/**
-	 * Register user logging for logger
+	 * Determine if the current user should have actions logged per the settings.
 	 *
-	 * @since 4.1
+	 * @param bool $user User to check. Optional.
 	 *
-	 * @param  array $logger_modules array of logger modules
-	 *
-	 * @return array                   array of logger modules
+	 * @return bool True if the user actions should be logged, false otherwise.
 	 */
-	public function register_logger( $logger_modules ) {
-		$logger_modules['user_logging'] = array(
-			'type'     => 'user_logging',
-			'function' => __( 'User Action', 'it-l10n-ithemes-security-pro' ),
-		);
+	public function should_log_for_current_user( $user = false ) {
+		if ( ! $user = ITSEC_Lib::get_user( $user ) ) {
+			return false;
+		}
 
-		return $logger_modules;
+		return $this->matcher->matches( User_Groups\Match_Target::for_user( $user ), ITSEC_Modules::get_setting( 'user-logging', 'group' ) );
 	}
 
 	/**
@@ -64,42 +66,24 @@ class ITSEC_User_logging {
 	 *
 	 * @since 4.2
 	 *
-	 * @param array  $new_status new post status array
-	 * @param string $old_status old post status
-	 * @param int    $post       the post id
+	 * @param string  $new_status New post status.
+	 * @param string  $old_status Old post status.
+	 * @param WP_Post $post       Post object.
 	 *
 	 * @return void
 	 */
 	public function transition_post_status( $new_status, $old_status, $post ) {
-		global $itsec_logger;
-
-		if ( in_array( $new_status, array( 'auto-draft', 'inherit' ) ) ) {
+		if ( $new_status === $old_status || in_array( $new_status, array( 'auto-draft', 'inherit' ) ) ) {
+			// Don't log automated processes as they don't indicate user action.
+			// transition_post_status() isn't always called with different post statuses.
 			return;
-		} else if ( $old_status === 'auto-draft' && $new_status === 'draft' ) {
-			$action = __( 'Content Drafted', 'it-l10n-ithemes-security-pro' );
-		} else if ( ( $old_status === 'auto-draft' || $old_status === 'draft' ) && in_array( $new_status, array( 'publish', 'private' ) ) ) {
-			$action = __( 'Content Published', 'it-l10n-ithemes-security-pro' );
-		} else if ( $old_status === 'publish' && in_array( $new_status, array( 'draft' ) ) ) {
-			$action = __( 'Content Unpublished', 'it-l10n-ithemes-security-pro' );
-		} else if ( $new_status === 'trash' ) {
-			$action = __( 'Content Moved to Trash', 'it-l10n-ithemes-security-pro' );
-		} else {
-			$action = __( 'Content Updated', 'it-l10n-ithemes-security-pro' );
 		}
 
-		$user = wp_get_current_user();
-
-		$itsec_logger->log_event(
-			'user_logging',
-			1,
-			array(
-				'action' => $action,
-				'post'   => $post->ID,
-			),
-			ITSEC_Lib::get_ip(),
-			$user->user_login,
-			$user->ID
-		);
+		if ( $this->should_log_for_current_user() ) {
+			$user_id = get_current_user_id();
+			$post_id = $post->ID;
+			ITSEC_Log::add_notice( 'user_logging', "post-status-changed::$user_id,$post_id,$old_status,$new_status", compact( 'user_id', 'post_id', 'old_status', 'new_status' ) );
+		}
 	}
 
 	/**
@@ -109,28 +93,23 @@ class ITSEC_User_logging {
 	 *
 	 * @return void
 	 */
-	public function wp_login( $user_login ) {
-		global $itsec_logger;
+	public function wp_login( $user_login, $user ) {
+		if ( $this->should_log_for_current_user( $user->ID ) ) {
+			$user_id = $user->ID;
+			ITSEC_Log::add_notice( 'user_logging', "user-logged-in::$user_id", compact( 'user_id' ) );
+		}
+	}
 
-		$user = get_user_by( 'login', $user_login );
-
-		foreach ( $user->roles as $role ) {
-			if ( in_array( $role, $this->role_list[$this->settings['role']] ) ) {
-				$itsec_logger->log_event(
-					'user_logging',
-					1,
-					array(
-						'action' => __( 'User Login', 'it-l10n-ithemes-security-pro' ),
-					),
-					ITSEC_Lib::get_ip(),
-					$user_login,
-					'',
-					'',
-					''
-				);
-
-				return;
-			}
+	/**
+	 * When the user is logged-in via the interstitial, record the login.
+	 *
+	 * Remove this when we figure out a way to fire later wp_login actions in the Login Interstitial.
+	 *
+	 * @param WP_User $user
+	 */
+	public function interstitial_login( $user ) {
+		if ( ! did_action( 'itsec-two-factor-successful-authentication' ) && $this->should_log_for_current_user( $user ) ) {
+			ITSEC_Log::add_notice( 'user_logging', "user-logged-in::{$user->ID}", array( 'user_id' => $user->ID ) );
 		}
 	}
 
@@ -142,19 +121,89 @@ class ITSEC_User_logging {
 	 * @return void
 	 */
 	public function wp_logout() {
-		global $itsec_logger;
+		$user_id = get_current_user_id();
 
-		$itsec_logger->log_event(
-			'user_logging',
-			1,
-			array(
-				'action' => __( 'A User Logged Out', 'it-l10n-ithemes-security-pro' ),
-			),
-			ITSEC_Lib::get_ip(),
-			'',
-			'',
-			'',
-			''
-		);
+		if ( ! $user_id ) {
+			$user_id = $this->current_user_id;
+		}
+
+		if ( $user_id && $this->should_log_for_current_user( $user_id ) ) {
+			ITSEC_Log::add_notice( 'user_logging', "user-logged-out::$user_id", compact( 'user_id' ) );
+		}
+
+		$this->current_user_id = 0;
+	}
+
+	/**
+	 * Log successful two-factor login
+	 *
+	 * @since 4.7.4
+	 *
+	 * @param string $provider_class Type of two factor authentication.
+	 */
+	public function log_two_factor_authentication( $user_id, $provider_class ) {
+		if ( $this->should_log_for_current_user( $user_id ) ) {
+			ITSEC_Log::add_notice( 'user_logging', "user-logged-in::$user_id,two_factor,$provider_class", compact( 'user_id' ) );
+		}
+	}
+
+	/**
+	 * Log when a user is created with a role that we care about.
+	 *
+	 * @param int $user_id
+	 */
+	public function user_register( $user_id ) {
+		if ( ! $this->should_log_for_current_user( $user_id ) ) {
+			return;
+		}
+
+		if ( is_user_logged_in() ) {
+			ITSEC_Log::add_notice( 'user_logging', "user-registered::{$user_id},admin", array( 'user_id' => $user_id, 'created_by' => get_current_user_id() ) );
+		} else {
+			ITSEC_Log::add_notice( 'user_logging', "user-registered::{$user_id}", compact( 'user_id' ) );
+		}
+	}
+
+	/**
+	 * Log when a plugin is activated.
+	 *
+	 * @param string $file
+	 * @param bool   $network_wide
+	 */
+	public function activated_plugin( $file, $network_wide ) {
+		ITSEC_Log::add_notice( 'user_logging', "plugin-activated::{$file},{$network_wide}" );
+	}
+
+	/**
+	 * Log when a plugin is deactivated.
+	 *
+	 * @param string $file
+	 * @param bool   $network_wide
+	 */
+	public function deactivated_plugin( $file, $network_wide ) {
+		ITSEC_Log::add_notice( 'user_logging', "plugin-deactivated::{$file},{$network_wide}" );
+	}
+
+	/**
+	 * Log when a plugin is deleted.
+	 *
+	 * @param string $file
+	 * @param bool   $deleted
+	 */
+	public function deleted_plugin( $file, $deleted ) {
+		if ( $deleted ) {
+			ITSEC_Log::add_notice( 'user_logging', "plugin-deleted::{$file}" );
+		}
+	}
+
+	/**
+	 * Log when the theme is switched.
+	 *
+	 * @param string   $new_name
+	 * @param WP_Theme $new_theme
+	 * @param WP_Theme $old_theme
+	 */
+	public function switch_theme( $new_name, $new_theme, $old_theme ) {
+		ITSEC_Log::add_notice( 'user_logging', "theme-switched::{$new_theme->get_stylesheet()},{$old_theme->get_stylesheet()}" );
 	}
 }

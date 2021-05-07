@@ -2,12 +2,48 @@
 
 class ITSEC_SSL_Admin {
 	function run() {
-		if ( 1 === ITSEC_Modules::get_setting( 'ssl', 'frontend' ) ) {
+		$settings = ITSEC_Modules::get_settings( 'ssl' );
 
+		if ( 'advanced' === $settings['require_ssl'] && 1 === $settings['frontend'] ) {
+			add_action( 'init', array( $this, 'register_meta' ) );
+			add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_block_editor' ) );
 			add_action( 'post_submitbox_misc_actions', array( $this, 'ssl_enable_per_content' ) );
 			add_action( 'save_post', array( $this, 'save_post' ) );
-
 		}
+	}
+
+	/**
+	 * Register the "Enable SSL" meta key.
+	 */
+	public function register_meta() {
+		register_meta( 'post', 'itsec_enable_ssl', array(
+			'single'            => true,
+			'type'              => 'boolean',
+			'sanitize_callback' => 'rest_sanitize_boolean',
+			'show_in_rest'      => array(
+				'schema' => array(
+					'type'    => 'boolean',
+					'context' => array( 'edit' ),
+				)
+			)
+		) );
+	}
+
+	/**
+	 * Enqueue the JS for the block editor to add the "Enable SSL" checkbox.
+	 */
+	public function enqueue_block_editor() {
+		wp_enqueue_script( 'itsec-ssl-block-editor', plugins_url( 'js/block-editor.js', __FILE__ ), array(
+			'wp-components',
+			'wp-compose',
+			'wp-element',
+			'wp-edit-post',
+			'wp-data',
+			'wp-plugins',
+		), 1, true );
+		wp_localize_script( 'itsec-ssl-block-editor', 'ITSECSSLBlockEditor', array(
+			'enableSSL' => __( 'Enable SSL', 'it-l10n-ithemes-security-pro' ),
+		) );
 	}
 
 	/**
@@ -47,7 +83,15 @@ class ITSEC_SSL_Admin {
 
 		if ( isset( $_POST['itsec_admin_save_wp_nonce'] ) ) {
 
-			if ( ! wp_verify_nonce( $_POST['itsec_admin_save_wp_nonce'], 'ITSEC_Admin_Save' ) || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ( $_POST['post_type'] == 'page' && ! current_user_can( 'edit_page', $id ) ) || ( $_POST['post_type'] == 'post' && ! current_user_can( 'edit_post', $id ) ) ) {
+			if ( ! wp_verify_nonce( $_POST['itsec_admin_save_wp_nonce'], 'ITSEC_Admin_Save' ) ) {
+				return $id;
+			}
+
+			if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+				return $id;
+			}
+
+			if ( ! current_user_can( 'edit_post', $id ) ) {
 				return $id;
 			}
 

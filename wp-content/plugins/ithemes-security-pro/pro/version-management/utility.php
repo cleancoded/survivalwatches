@@ -2,69 +2,23 @@
 
 final class ITSEC_VM_Utility {
 	private static $wordpress_release_dates = false;
+	private static $version_cache = array();
 
 	public static function get_email_addresses() {
-		$settings = ITSEC_Modules::get_settings( 'version-management' );
-		$contacts = $settings['email_contacts'];
 
-		if ( empty( $contacts ) ) {
-			// Select all roles that can manage the plugin when the setting is empty.
+		_deprecated_function( __METHOD__, '3.9.0', 'ITSEC_Notification_Center::get_recipients' );
 
-			$validator = ITSEC_Modules::get_validator( 'version-management' );
+		$nc = ITSEC_Core::get_notification_center();
 
-			$users_and_roles = $validator->get_available_admin_users_and_roles();
-			$contacts = array_keys( $users_and_roles['roles'] );
+		if ( $nc->is_notification_enabled( 'old-site-scan' ) ) {
+			return $nc->get_recipients( 'old-site-scan' );
 		}
 
-
-		$addresses = array();
-
-		foreach ( $contacts as $contact ) {
-			if ( (string) $contact === (string) intval( $contact ) ) {
-				$users = array( get_userdata( $contact ) );
-			} else {
-				list( $prefix, $role ) = explode( ':', $contact, 2 );
-
-				if ( empty( $role ) ) {
-					continue;
-				}
-
-				$users = get_users( array( 'role' => $role ) );
-			}
-
-			foreach ( $users as $user ) {
-				if ( is_object( $user ) && ! empty( $user->user_email ) ) {
-					$addresses[] = $user->user_email;
-				}
-			}
+		if ( $nc->is_notification_enabled( 'automatic-updates-debug' ) ) {
+			return $nc->get_recipients( 'automatic-updates-debug' );
 		}
 
-		$addresses = array_unique( $addresses );
-
-		if ( ! empty( $addresses ) ) {
-			return $addresses;
-		}
-
-
-		if ( is_callable( 'wp_roles' ) ) {
-			$roles = wp_roles();
-		} else {
-			$roles = new WP_Roles();
-		}
-
-		foreach ( $roles->roles as $role => $details ) {
-			if ( isset( $details['capabilities']['manage_options'] ) && ( true === $details['capabilities']['manage_options'] ) ) {
-				$users = get_users( array( 'role' => $role ) );
-
-				foreach ( $users as $user ) {
-					if ( ! empty( $user->user_email ) ) {
-						$addresses[] = $user->user_email;
-					}
-				}
-			}
-		}
-
-		return $addresses;
+		return array();
 	}
 
 	public static function is_wordpress_version_outdated( $version = false ) {
@@ -89,10 +43,10 @@ final class ITSEC_VM_Utility {
 		uksort( $release_dates, 'version_compare' );
 
 		$latest_timestamp = end( $release_dates );
-		$latest_version = key( $release_dates );
+		$latest_version   = key( $release_dates );
 
 		$previous_timestamp = prev( $release_dates );
-		$previous_version = key( $release_dates );
+		$previous_version   = key( $release_dates );
 
 		// If this version is the previous release version and the latest release version has been out for less than a
 		// month, do not list this version as outdated.
@@ -100,8 +54,8 @@ final class ITSEC_VM_Utility {
 			return false;
 		}
 
-		if ( ! isset( $release_dates[$version] ) ) {
-			$latest_major_version = self::get_major_version( $latest_version );
+		if ( ! isset( $release_dates[ $version ] ) ) {
+			$latest_major_version  = self::get_major_version( $latest_version );
 			$current_major_version = self::get_major_version( $version );
 
 			if ( $latest_major_version === $current_major_version && version_compare( $version, $latest_version, '>=' ) ) {
@@ -133,8 +87,8 @@ final class ITSEC_VM_Utility {
 			return false;
 		}
 
-		$current_version_timestamp = $release_dates[$version];
-		$timestamp_diff = $latest_timestamp - $current_version_timestamp;
+		$current_version_timestamp = $release_dates[ $version ];
+		$timestamp_diff            = $latest_timestamp - $current_version_timestamp;
 
 		if ( $timestamp_diff >= MONTH_IN_SECONDS ) {
 			// If a month or more of time spans between the release of this version and the latest version, this version
@@ -146,9 +100,9 @@ final class ITSEC_VM_Utility {
 
 		// Tests when the version is an older major version.
 		if ( false !== $latest_major_version && version_compare( $version, $latest_major_version, '<' ) ) {
-			if ( isset( $release_dates[$latest_major_version] ) ) {
-				$latest_major_timestamp = $release_dates[$latest_major_version];
-			} else if ( isset( $release_dates["$latest_major_version.0"] ) ) {
+			if ( isset( $release_dates[ $latest_major_version ] ) ) {
+				$latest_major_timestamp = $release_dates[ $latest_major_version ];
+			} elseif ( isset( $release_dates["$latest_major_version.0"] ) ) {
 				$latest_major_timestamp = $release_dates["$latest_major_version.0"];
 			}
 
@@ -225,6 +179,7 @@ final class ITSEC_VM_Utility {
 
 		if ( is_array( $data ) && isset( $data['expires'] ) && $data['expires'] > time() && isset( $data['dates'] ) ) {
 			self::$wordpress_release_dates = $data['dates'];
+
 			return $data['dates'];
 		}
 
@@ -233,16 +188,8 @@ final class ITSEC_VM_Utility {
 			'dates'   => isset( $data['dates'] ) ? $data['dates'] : array(),
 		);
 
-		$https_url = 'https://s3.amazonaws.com/downloads.ithemes.com/public/wordpress-release-dates.json';
-		$http_url = 'http://downloads.ithemes.com/public/wordpress-release-dates.json';
-
-		if ( wp_http_supports( array( 'ssl' ) ) ) {
-			$response = wp_remote_get( $https_url );
-		}
-
-		if ( ! isset( $response ) || is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			$response = wp_remote_get( $http_url );
-		}
+		$url      = 'https://s3.amazonaws.com/downloads.ithemes.com/public/wordpress-release-dates.json';
+		$response = wp_remote_get( $url );
 
 		if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
 			$dates = json_decode( $response['body'], true );
@@ -263,5 +210,322 @@ final class ITSEC_VM_Utility {
 		self::$wordpress_release_dates = $data['dates'];
 
 		return $data['dates'];
+	}
+
+	public static function get_automatic_update_statuses() {
+		global $wp_theme_directories;
+
+		require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+
+
+		$errors = array();
+
+		if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) {
+			$errors[] = new WP_Error( 'itsec-vm-cron-disabled-by-define', wp_kses( __( 'The <code>DISABLE_WP_CRON</code> define is set to a true value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+		}
+
+		if ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS ) {
+			$errors[] = new WP_Error( 'itsec-vm-file-mods-disabled-by-define', wp_kses( __( 'The <code>DISALLOW_FILE_MODS</code> define is set to a true value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+		}
+
+		if ( false === apply_filters( 'file_mod_allowed', true, 'automatic_updater' ) ) {
+			$errors[] = new WP_Error( 'itsec-vm-file-mods-disabled-by-filter', wp_kses( __( 'The <code>file_mod_allowed</code> filter returned a false value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+		}
+
+		if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
+			$errors[] = new WP_Error( 'itsec-vm-wp-installing-define-set', wp_kses( __( 'The <code>WP_INSTALLING</code> define is set to a true value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+		}
+
+		if ( defined( 'AUTOMATIC_UPDATER_DISABLED' ) && AUTOMATIC_UPDATER_DISABLED ) {
+			$errors[] = new WP_Error( 'itsec-vm-automatic-updater-disabled-by-define', wp_kses( __( 'The <code>AUTOMATIC_UPDATER_DISABLED</code> define is set to a true value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+		}
+
+		if ( apply_filters( 'automatic_updater_disabled', false ) ) {
+			$errors[] = new WP_Error( 'itsec-vm-automatic-updater-disabled-by-filter', wp_kses( __( 'The <code>automatic_updater_disabled</code> filter returned a false value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+		}
+
+		if ( is_multisite() ) {
+			$errors[] = new WP_Error( 'itsec-vm-site-is-multisite', __( 'This site is a multisite installation. Automatic updates run on the cron system and will only run when the cron system is triggered by a request to the main site. This means that the main site must receive periodic page requests or automatic updates will not run.', 'it-l10n-ithemes-security-pro' ) );
+		}
+
+
+		WP_Upgrader::release_lock( 'auto_updater' );
+
+		if ( ! WP_Upgrader::create_lock( 'auto_updater' ) ) {
+			$errors[] = new WP_Error( 'itsec-vm-could-not-create-lock', __( 'Part of the update process is creating a lock that prevents multiple automatic updates from running at the same time. Your site may have issue creating these locks which could prevent automatic updates from running successfully.', 'it-l10n-ithemes-security-pro' ) );
+		}
+
+		WP_Upgrader::release_lock( 'auto_updater' );
+
+
+		$statuses['all']         = $errors;
+		$statuses['core']        = self::get_automatic_update_status_for_type( 'core', ABSPATH );
+		$statuses['plugin']      = self::get_automatic_update_status_for_type( 'plugin', WP_PLUGIN_DIR );
+		$statuses['theme']       = array();
+		$statuses['translation'] = self::get_automatic_update_status_for_type( 'translation', WP_CONTENT_DIR );
+
+		foreach ( $wp_theme_directories as $directory ) {
+			$statuses['theme'] = array_merge( $statuses['theme'], self::get_automatic_update_status_for_type( 'theme', $directory ) );
+		}
+
+
+		return $statuses;
+	}
+
+	private static function get_automatic_update_status_for_type( $type, $context ) {
+		global $wp_version, $wpdb;
+
+		$skin     = new Automatic_Upgrader_Skin();
+		$upgrader = new WP_Automatic_Updater();
+
+		$errors = array();
+
+
+		if ( 'core' === $type ) {
+			$item = (object) array(
+				'response'        => 'latest',
+				'download'        => 'https://downloads.wordpress.org/release/wordpress-4.8.zip',
+				'locale'          => 'en_US',
+				'packages'        => (object) array(
+					'full'        => 'https://downloads.wordpress.org/release/wordpress-4.8.zip',
+					'no_content'  => 'https://downloads.wordpress.org/release/wordpress-4.8-no-content.zip',
+					'new_bundled' => 'https://downloads.wordpress.org/release/wordpress-4.8-new-bundled.zip',
+					'partial'     => false,
+					'rollback'    => false,
+				),
+				'current'         => '4.8',
+				'version'         => '4.8',
+				'php_version'     => '5.2.4',
+				'mysql_version'   => '5.0',
+				'new_bundled'     => '4.7',
+				'partial_version' => false,
+			);
+		} elseif ( 'plugin' === $type ) {
+			$item = (object) array(
+				'id'          => 'w.org/plugins/hello-dolly',
+				'slug'        => 'hello-dolly',
+				'plugin'      => 'hello.php',
+				'new_version' => '1.6',
+				'url'         => 'https://wordpress.org/plugins/hello-dolly/',
+				'package'     => 'https://downloads.wordpress.org/plugin/hello-dolly.1.6.zip',
+			);
+		} elseif ( 'theme' === $type ) {
+			$item = (object) array(
+				'theme'       => 'twentyfifteen',
+				'new_version' => '1.7',
+				'url'         => 'https://wordpress.org/themes/twentyfifteen/',
+				'package'     => 'https://downloads.wordpress.org/theme/twentyfifteen.1.7.zip',
+			);
+		} elseif ( 'translation' === $type ) {
+			$item = (object) array(
+				'type'     => 'theme',
+				'slug'     => 'twentyfifteen',
+				'language' => 'en_GB',
+				'version'  => '1.6',
+				'updated'  => '2015-08-18 16:52:12',
+				'packages' => 'https://downloads.wordpress.org/translation/theme/twentyfifteen/1.6/en_GB.zip',
+			);
+		} else {
+			$item = (object) array();
+		}
+
+
+		if ( ! $skin->request_filesystem_credentials( false, $context ) ) {
+			$errors[] = new WP_Error( 'itsec-vm-updates-disabled-by-file-permissions', __( 'WordPress is unable to modify the necessary files. This is often caused by a server configuration issue that has PHP run as a different user than the user that owns the files.', 'it-l10n-ithemes-security-pro' ) );
+		}
+
+		if ( $upgrader->is_vcs_checkout( $context ) ) {
+			if ( apply_filters( 'automatic_updates_is_vcs_checkout', false, $context ) ) {
+				$errors[] = new WP_Error( 'itsec-vm-updates-disabled-by-version-control-filter', wp_kses( __( 'The <code>automatic_updates_is_vcs_checkout</code> filter returned a true value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+			} else {
+				$errors[] = new WP_Error( 'itsec-vm-updates-disabled-by-version-control', __( 'The files are under version control such as being part of a SVN, Git, Mercurial, Bazaar, or other VCS repository. This disables automatic updates since presence of version control indicates that the files are managed via a non-standard process.', 'it-l10n-ithemes-security-pro' ) );
+			}
+		}
+
+		if ( ! apply_filters( "auto_update_{$type}", true, $item ) ) {
+			$errors[] = new WP_Error( "itsec-vm-auto-updates-$type-disabled-by-filter", sprintf( wp_kses( __( 'The <code>%s</code> filter returned a false value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ), "auto_update_$type" ) );
+		}
+
+		if ( 'core' === $type ) {
+			if ( defined( 'WP_AUTO_UPDATE_CORE' ) && ! WP_AUTO_UPDATE_CORE ) {
+				$errors[] = new WP_Error( 'itsec-vm-updates-disabled-by-wp-auto-update-core-define', wp_kses( __( 'The <code>WP_AUTO_UPDATE_CORE</code> define is set to a false value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+			}
+
+			if ( (bool) strpos( $wp_version, '-' ) ) {
+				if ( defined( 'WP_AUTO_UPDATE_CORE' ) && true !== WP_AUTO_UPDATE_CORE ) {
+					$errors[] = new WP_Error( 'itsec-vm-updates-disabled-by-wp-auto-update-core-define', wp_kses( __( 'The <code>WP_AUTO_UPDATE_CORE</code> define is present and not set to <code>true</code>.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+				}
+
+				if ( ! apply_filters( 'allow_dev_auto_core_updates', true ) ) {
+					$errors[] = new WP_Error( 'itsec-vm-core-dev-auto-updates-disabled-by-filter', wp_kses( __( 'The <code>allow_dev_auto_core_updates</code> filter returned a false value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+				}
+			} else {
+				$message = '';
+
+				if ( defined( 'WP_AUTO_UPDATE_CORE' ) && ! WP_AUTO_UPDATE_CORE ) {
+					$errors[] = new WP_Error( 'itsec-vm-updates-disabled-by-wp-auto-update-core-define', wp_kses( __( 'The <code>WP_AUTO_UPDATE_CORE</code> define is present and set to a false value.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+				}
+
+				if ( ! apply_filters( 'allow_minor_auto_core_updates', true ) ) {
+					$errors[] = new WP_Error( 'itsec-vm-core-minor-auto-updates-disabled-by-filter', wp_kses( __( 'The <code>allow_minor_auto_core_updates</code> filter returned a false value. This prevents automatically updating to new minor versions of WordPress, such as updating from 4.0 to 4.0.1.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+				}
+
+				if ( ! apply_filters( 'allow_major_auto_core_updates', true ) ) {
+					$errors[] = new WP_Error( 'itsec-vm-core-major-auto-updates-disabled-by-filter', wp_kses( __( 'The <code>allow_major_auto_core_updates</code> filter returned a false value. This prevents automatically updating to new major versions of WordPress, such as updating from 4.0 to 4.1.', 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ) );
+				}
+			}
+
+
+			if ( version_compare( phpversion(), '5.2.4', '<' ) ) {
+				$errors[] = new WP_Error( 'itsec-vm-core-failed-php-compatibility', sprintf( wp_kses( __( "The server's PHP version (<code>%s</code>) is too old and is incompatible with newer versions of WordPress. This is a critical issue as older versions of PHP can be vulnerable to security issues.", 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ), phpversion() ) );
+			}
+
+			if ( ( ! file_exists( WP_CONTENT_DIR . '/db.php' ) || ! empty( $wpdb->is_mysql ) ) && version_compare( $wpdb->db_version(), '5.0', '<' ) ) {
+				$errors[] = new WP_Error( 'itsec-vm-core-failed-mysql-compatibility', sprintf( wp_kses( __( "The server's MySQL version (<code>%s</code>) is too old and is incompatible with newer versions of WordPress. This is a critical issue as older versions of MySQL can be vulnerable to security issues.", 'it-l10n-ithemes-security-pro' ), array( 'code' => array() ) ), $wpdb->db_version() ) );
+			}
+		}
+
+
+		return $errors;
+	}
+
+	public static function should_auto_update_plugin( $file, $version ) {
+		return self::should_auto_update_package( 'plugin', $file, $version );
+	}
+
+	public static function should_auto_update_theme( $file, $version ) {
+		return self::should_auto_update_package( 'theme', $file, $version );
+	}
+
+	private static function should_auto_update_package( $type, $file, $version ) {
+
+		if ( ITSEC_Modules::get_setting( 'version-management', 'update_if_vulnerable' ) && self::update_fixes_vulnerability( $type, $file, $version ) ) {
+			return true;
+		}
+
+		$global = ITSEC_Modules::get_setting( 'version-management', "{$type}_automatic_updates" );
+
+		if ( 'none' === $global ) {
+			return null;
+		}
+
+		if ( 'all' === $global ) {
+			return true;
+		}
+
+		$packages = ITSEC_Modules::get_setting( 'version-management', 'packages' );
+
+		if ( ! isset( $packages["{$type}:{$file}"] ) ) {
+			return null;
+		}
+
+		$config = $packages["{$type}:{$file}"];
+
+		if ( 'disabled' === $config['type'] ) {
+			return false;
+		}
+
+		if ( 'enabled' === $config['type'] ) {
+			return true;
+		}
+
+		$first_seen = ITSEC_Modules::get_setting( 'version-management', 'first_seen' );
+
+		if ( ! isset( $first_seen[ $type ][ $file ][ $version ] ) ) {
+			return false;
+		}
+
+		$seconds_available = ITSEC_Core::get_current_time_gmt() - $first_seen[ $type ][ $file ][ $version ];
+
+		return $seconds_available > DAY_IN_SECONDS * $config['delay'];
+	}
+
+	/**
+	 * Check if the given update fixes a software vulnerability.
+	 *
+	 * @param string $type
+	 * @param string $file
+	 * @param string $version
+	 *
+	 * @return bool
+	 */
+	private static function update_fixes_vulnerability( $type, $file, $version ) {
+
+		$slug = dirname( $file );
+
+		$vulnerabilities = ITSEC_Modules::get_setting( 'site-scanner', 'vulnerabilities' );
+
+		foreach ( $vulnerabilities as $vulnerability ) {
+			if ( $vulnerability['type'] !== $type ) {
+				continue;
+			}
+
+			if ( ! isset( $vulnerability['software'] ) || $vulnerability['software']['slug'] !== $slug ) {
+				continue;
+			}
+
+			foreach ( $vulnerability['issues'] as $issue ) {
+				if ( empty( $issue['fixed_in'] ) ) {
+					continue;
+				}
+
+				$current = self::get_current_version( $type, $file );
+
+				if ( version_compare( $current, $issue['fixed_in'], '<' ) && version_compare( $version, $issue['fixed_in'], '>=' ) ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get the currently installed version of a plugin or theme.
+	 *
+	 * @param string $type
+	 * @param string $file
+	 *
+	 * @return string|false
+	 */
+	private static function get_current_version( $type, $file ) {
+		if ( isset( self::$version_cache[ $type ][ $file ] ) ) {
+			return self::$version_cache[ $type ][ $file ];
+		}
+
+		switch ( $type ) {
+			case 'plugin':
+				$path = WP_PLUGIN_DIR . '/' . $file;
+
+				if ( ! file_exists( $path ) ) {
+					$version = false;
+					break;
+				}
+
+				$data = get_file_data( $path, array(
+					'Version' => 'Version'
+				) );
+
+				if ( ! is_array( $data ) || ! isset( $data['Version'] ) ) {
+					$version = false;
+					break;
+				}
+
+				$version = $data['Version'];
+				break;
+			case 'theme':
+				$version = wp_get_theme( $file )->get( 'Version' );
+
+				if ( ! $version ) {
+					$version = false;
+				}
+				break;
+			default:
+				return false;
+		}
+
+		self::$version_cache[ $type ][ $file ] = $version;
+
+		return $version;
 	}
 }

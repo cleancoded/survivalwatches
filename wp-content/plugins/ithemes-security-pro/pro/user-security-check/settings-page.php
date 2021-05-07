@@ -4,7 +4,6 @@ final class ITSEC_User_Security_Check_Settings_Page extends ITSEC_Module_Setting
 	public function __construct() {
 		$this->id = 'user-security-check';
 		$this->title = __( 'User Security Check', 'it-l10n-ithemes-security-pro' );
-		// @todo Description.
 		$this->description = __( 'Every user on your site affects overall security. See how your users might be affecting your security and take action when needed.', 'it-l10n-ithemes-security-pro' );
 		$this->type = 'recommended';
 		$this->pro = true;
@@ -14,10 +13,6 @@ final class ITSEC_User_Security_Check_Settings_Page extends ITSEC_Module_Setting
 	}
 
 	protected function render_description( $form ) {
-		// @todo Description.
-?>
-	<p><?php printf( __( '', 'it-l10n-ithemes-security-pro' ) ); ?></p>
-<?php
 
 	}
 

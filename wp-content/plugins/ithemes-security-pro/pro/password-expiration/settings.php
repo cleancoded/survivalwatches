@@ -7,9 +7,7 @@ final class ITSEC_Password_Expiration_Settings extends ITSEC_Settings {
 	
 	public function get_defaults() {
 		return array(
-			'expire_role'  => 'administrator',
 			'expire_force' => 0,
-			'expire_max'   => 120,
 		);
 	}
 }

@@ -14,10 +14,15 @@ class ITSEC_Recaptcha_Validator extends ITSEC_Validator {
 		$this->sanitize_setting( 'bool', 'login', esc_html__( 'Use on Login', 'it-l10n-ithemes-security-pro' ) );
 		$this->sanitize_setting( 'bool', 'register', esc_html__( 'Use on New User Registration', 'it-l10n-ithemes-security-pro' ) );
 		$this->sanitize_setting( 'bool', 'comments', esc_html__( 'Use on Comments', 'it-l10n-ithemes-security-pro' ) );
+		$this->sanitize_setting( 'bool', 'reset_pass', esc_html__( 'Use on Reset Password', 'it-l10n-ithemes-security-pro' ) );
 		$this->sanitize_setting( array_keys( $this->get_valid_languages() ), 'language', esc_html__( 'Language', 'it-l10n-ithemes-security-pro' ) );
 		$this->sanitize_setting( 'bool', 'theme', esc_html__( 'Use Dark Theme', 'it-l10n-ithemes-security-pro' ) );
 		$this->sanitize_setting( 'positive-int', 'error_threshold', esc_html__( 'Lockout Error Threshold', 'it-l10n-ithemes-security-pro' ) );
 		$this->sanitize_setting( 'positive-int', 'check_period', esc_html__( 'Lockout Check Period', 'it-l10n-ithemes-security-pro' ) );
+		$this->sanitize_setting( array( 'bottomleft', 'bottomright' ), 'invis_position', esc_html__( 'Invisible reCAPTCHA Position', 'it-l10n-ithemes-security-pro' ) );
+		$this->sanitize_setting( 'number', 'v3_threshold', esc_html__( 'Block Threshold', 'it-l10n-ithemes-security-pro' ) );
+		$this->sanitize_setting( array_keys( $this->get_valid_v3_include_locations() ), 'v3_include_location', esc_html__( 'Script Inclusion', 'it-l10n-ithemes-security-pro' ) );
+		$this->sanitize_setting( 'bool', 'on_page_opt_in', esc_html__( 'On Page Opt-in', 'it-l10n-ithemes-security-pro' ) );
 
 		if ( $this->settings['type'] !== $this->previous_settings['type'] || $this->settings['site_key'] !== $this->previous_settings['site_key'] || $this->settings['secret_key'] !== $this->previous_settings['secret_key'] ) {
 			$this->settings['validated'] = false;
@@ -45,15 +50,31 @@ class ITSEC_Recaptcha_Validator extends ITSEC_Validator {
 
 	public function get_valid_types() {
 		return array(
-			'v2'        => esc_html__( 'reCAPTCHA V2', 'it-l10n-ithemes-security-pro' ),
+			'v2'        => esc_html__( 'reCAPTCHA v2', 'it-l10n-ithemes-security-pro' ),
 			'invisible' => esc_html__( 'Invisible reCAPTCHA', 'it-l10n-ithemes-security-pro' ),
+			'v3'        => esc_html__( 'reCAPTCHA v3', 'it-l10n-ithemes-security-pro' ),
 		);
 	}
 
 	public function get_valid_types_with_description() {
 		return array(
-			'v2'        => esc_html__( 'reCAPTCHA V2 - Validate users with the "I\'m not a robot" checkbox.', 'it-l10n-ithemes-security-pro' ),
+			'v2'        => esc_html__( 'reCAPTCHA v2 - Validate users with the "I\'m not a robot" checkbox.', 'it-l10n-ithemes-security-pro' ),
 			'invisible' => esc_html__( 'Invisible reCAPTCHA - Validate users in the background.', 'it-l10n-ithemes-security-pro' ),
+			'v3'        => esc_html__( 'reCAPTCHA v3 - Monitor visitors in the background on all pages.', 'it-l10n-ithemes-security-pro' ),
+		);
+	}
+
+	public function get_valid_invisible_positions() {
+		return array(
+			'bottomleft'  => esc_html__( 'Bottom Left', 'it-l10n-ithemes-security-pro' ),
+			'bottomright' => esc_html__( 'Bottom Right', 'it-l10n-ithemes-security-pro' ),
+		);
+	}
+
+	public function get_valid_v3_include_locations() {
+		return array(
+			'everywhere' => esc_html__( 'On All Pages', 'it-l10n-ithemes-security-pro' ),
+			'required'   => esc_html__( 'Only Required Pages', 'it-l10n-ithemes-security-pro' ),
 		);
 	}
 

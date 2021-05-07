@@ -2,27 +2,26 @@
 
 class ITSEC_User_Security_Check {
 	public function run() {
-		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		add_filter( 'manage_toplevel_page_itsec_columns', array( $this, 'add_columns' ) );
-		add_action( 'manage_users_custom_column', array( $this, 'column_content' ), null, 3);
+		add_filter( 'manage_toplevel_page_itsec-network_columns', array( $this, 'add_columns' ) );
+		add_action( 'manage_users_custom_column', array( $this, 'column_content' ), 10, 3 );
 		add_action( 'wp_ajax_itsec-user-security-check-user-search', array( $this, 'user_search' ) );
 		add_action( 'wp_ajax_itsec-set-user-role', array( $this, 'set_role' ) );
 		add_action( 'wp_ajax_itsec-destroy-sessions', array( $this, 'destroy_sessions' ) );
 		add_action( 'wp_ajax_itsec-send-2fa-email-reminder', array( $this, 'send_2fa_email_reminder' ) );
-		add_action( 'wp_authenticate_user', array( $this, 'wp_authenticate_user' ), 999, 2 );
-		add_filter( 'send_password_change_email', array( $this, 'send_password_change_email' ), 999, 3 );
-		add_filter( 'user_profile_update_errors', array( $this, 'user_profile_update_errors' ), 999, 3 );
-		add_action( 'password_reset', array( $this, 'password_reset' ), 999, 2 );
-		add_action( 'itsec_check_inactive_accounts', array( $this, 'check_inactive_accounts' ) );
-
-		if ( ! wp_next_scheduled( 'itsec_check_inactive_accounts' ) ) {
-			wp_schedule_event( time(), 'daily', 'itsec_check_inactive_accounts' );
-		}
+		add_filter( 'itsec_send_notification_inactive-users', array( $this, 'check_inactive_accounts' ), 10, 2 );
+		add_filter( 'itsec_notifications', array( $this, 'register_notifications' ) );
+		add_filter( 'itsec_two-factor-reminder_notification_strings', array( $this, 'two_factor_reminder_strings' ) );
+		add_filter( 'itsec_inactive-users_notification_strings', array( $this, 'inactive_users_strings' ) );
 	}
 
-	public function admin_init() {
-	}
-
+	/**
+	 * Register columns for the user security check table.
+	 *
+	 * @param array $columns
+	 *
+	 * @return array
+	 */
 	function add_columns( $columns ) {
 		require_once( ITSEC_Core::get_plugin_dir() . 'pro/two-factor/class-itsec-two-factor.php' );
 		require_once( ITSEC_Core::get_plugin_dir() . 'pro/two-factor/class-itsec-two-factor-helper.php' );
@@ -48,14 +47,28 @@ class ITSEC_User_Security_Check {
 		return $columns;
 	}
 
+	/**
+	 * Render each column's content.
+	 *
+	 * @param string $value
+	 * @param string $column_name
+	 * @param int    $user_id
+	 *
+	 * @return string
+	 */
 	function column_content( $value, $column_name, $user_id ) {
+
+		$user = get_userdata( $user_id );
+
 		switch ( $column_name ) {
 			case 'itsec-last-active':
 				return $this->get_last_active_cell_contents( $user_id );
 			case 'itsec-two-factor':
 				$itsec_two_factor = ITSEC_Two_Factor::get_instance();
-				if ( $itsec_two_factor->is_user_using_two_factor( $user_id ) ) {
+				if ( $itsec_two_factor->get_available_providers_for_user( $user, false ) ) {
 					return '<span class="dashicons dashicons-lock" title="' . esc_attr__( 'Two Factor Enabled', 'it-l10n-ithemes-security-pro' ) . '"></span>';
+				} elseif ( $itsec_two_factor->get_available_providers_for_user( $user, true ) ) {
+					return '<span class="dashicons dashicons-lock not-configured" title="' . esc_attr__( 'Two Factor Enforced, Not Configured', 'it-l10n-ithemes-security-pro' ) . '"></span>';
 				} else {
 					$return = '<span class="dashicons dashicons-unlock" title="' . esc_attr__( 'Two Factor Not Enabled', 'it-l10n-ithemes-security-pro' ) . '"></span>';
 					if ( current_user_can( 'edit_users', $user_id ) ) {
@@ -72,13 +85,13 @@ class ITSEC_User_Security_Check {
 					return '';
 				}
 				$user = get_userdata( $user_id );
-				
+
 				if ( empty( $user->roles ) ) {
 					$role = '';
 				} else {
 					$role = current( $user->roles );
 				}
-				
+
 				ob_start();
 				?>
 				<label class="screen-reader-text" for="<?php echo esc_attr( 'change_role-' . $user_id ); ?>"><?php _e( 'Change role to&hellip;' ) ?></label>
@@ -92,6 +105,13 @@ class ITSEC_User_Security_Check {
 		return $value;
 	}
 
+	/**
+	 * Display the number of locations the user is logged-in at and a button to log out those locations.
+	 *
+	 * @param int $user_id
+	 *
+	 * @return string
+	 */
 	private function get_user_session_cell_contents( $user_id ) {
 		$wp_sessions = WP_Session_Tokens::get_instance( $user_id );
 		$sessions = $wp_sessions->get_all();
@@ -107,6 +127,13 @@ class ITSEC_User_Security_Check {
 		}
 	}
 
+	/**
+	 * Display the time that the user has last been logged-in.
+	 *
+	 * @param int $user_id
+	 *
+	 * @return string
+	 */
 	public function get_last_active_cell_contents( $user_id ) {
 		$ITSEC_Lib_User_Activity = ITSEC_Lib_User_Activity::get_instance();
 
@@ -123,6 +150,13 @@ class ITSEC_User_Security_Check {
 
 	}
 
+	/**
+	 * Display a notice about the strength of the user's password.
+	 *
+	 * @param int $user_id
+	 *
+	 * @return string
+	 */
 	public function get_password_cell_contents( $user_id ) {
 		$password_strength = get_user_meta( $user_id, 'itsec-password-strength', true );
 
@@ -153,8 +187,9 @@ class ITSEC_User_Security_Check {
 				$strength_text = _x( 'Unknown', 'password strength', 'it-l10n-ithemes-security-pro' );
 		}
 
-		$password_updated_time = get_user_meta( $user_id, 'itsec-password-updated', true );
-		if ( false === $password_updated_time || '' === $password_updated_time || absint( $password_updated_time ) != $password_updated_time ) {
+		$password_updated_time = ITSEC_Lib_Password_Requirements::password_last_changed( $user_id );
+
+		if ( 0 === $password_updated_time ) {
 			$age = __( 'Unknown', 'it-l10n-ithemes-security-pro' );
 		} else {
 			$age = human_time_diff( $password_updated_time );
@@ -169,6 +204,9 @@ class ITSEC_User_Security_Check {
 
 	}
 
+	/**
+	 * Ajax callback to display a table that has been filtered by the "search" input.
+	 */
 	public function user_search() {
 		if ( wp_verify_nonce( $_POST['_nonce'], 'itsec-user-security-check-user-search' ) ) {
 			$return = new stdClass();
@@ -191,6 +229,9 @@ class ITSEC_User_Security_Check {
 		wp_send_json_error( array( 'message' => __( 'There was a problem searching.', 'it-l10n-ithemes-security-pro' ) ) );
 	}
 
+	/**
+	 * Ajax callback to update a user's role.
+	 */
 	public function set_role() {
 		$user_id = absint( $_POST['user_id'] );
 		if ( wp_verify_nonce( $_POST['_nonce'], 'itsec-user-security-check-set-role-' . $user_id ) && ! empty( $_REQUEST['new_role'] ) ) {
@@ -265,128 +306,35 @@ class ITSEC_User_Security_Check {
 			) );
 		}
 
-		$blogname = wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES );
-		$configure_2fa_url = admin_url( 'index.php?itsec-action=configure-two-factor' );
-		$user_requesting = wp_get_current_user();
+		$requester = wp_get_current_user();
+		$recipient = get_userdata( $_POST['user_id'] );
 
-		$merge_tags = array();
-		$merge_tags['{{title}}']        = sprintf( __( 'Two Factor Authentication Reminder for <a href="%1$s" target="_blank" rel="noopener noreferrer" style="mso-line-height-rule: exactly;-ms-text-size-adjust: 100%%;-webkit-text-size-adjust: 100%%;color: #FFFFFF;font-weight: bold;text-decoration: underline;">%2$s</a>', 'it-l10n-ithemes-security-pro' ), get_site_url(), $blogname );
-		$merge_tags['{{heading}}']      = __( 'Two Factor Authentication Reminder', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{message}}']      = '<p>' . sprintf( __( '%1$s from %2$s has asked that you set up Two Factor Authentication.', 'it-l10n-ithemes-security-pro' ), $user_requesting->display_name, $blogname ) . '</p>';
-		$merge_tags['{{setup_url}}']    = $configure_2fa_url;
-		$merge_tags['{{setup_button}}'] = __( 'Setup now', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{explanation}}']  = '<li style="margin: 0; padding: 5px 10px; font-weight: bold;">' . __( 'Enabling two-factor authentication greatly increases the security of your user account on this site.', 'it-l10n-ithemes-security-pro' ) . '</li>';
-		$merge_tags['{{explanation}}'] .= '<li style="margin: 0; padding: 5px 10px">'. __( 'With two-factor authentication enabled, after you login with your username and password, you will be asked for an authentication code before you can successfully log in.', 'it-l10n-ithemes-security-pro' ) . '</li>';
-		$merge_tags['{{explanation}}'] .= '<li style="margin: 0; padding: 5px 10px">' . sprintf( __('<a href="%1$s">Learn more about Two Factor Authentication</a>, or <a href="%2$s">how to set it up</a>.', 'it-l10n-ithemes-security-pro' ), esc_url( 'https://ithemes.com/2015/07/28/two-factor-authentication/' ), esc_url( 'https://ithemes.com/2016/07/26/two-factor-authentication-ithemes-security-pro-plugin/' ) ) . '</li>';
+		require_once( __DIR__ . '/utility.php' );
 
-		$subject = sprintf( __( '[%s] Please Set Up Two Factor Authentication', 'it-l10n-ithemes-security-pro' ), $blogname );
-		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+		$sent = ITSEC_User_Security_Check_Utility::send_2fa_reminder( $recipient, $requester );
 
-		$message = file_get_contents( dirname( __FILE__ ) . '/email-templates/2fa-reminder.html' );
-		$message = str_replace( array_keys( $merge_tags ), $merge_tags, $message );
-
-		$user = get_userdata( $_POST['user_id'] );
-
-		if ( wp_mail( $user->user_email, $subject, $message, $headers ) ) {
-			wp_send_json_success( array(
-				'message' => __( 'Reminder E-Mail has been sent.' ),
-			) );
-		} else {
+		if ( is_wp_error( $sent ) ) {
 			wp_send_json_error( array(
-				'message' => __( 'There was a problem sending the E-Mail reminder. Please try again.' ),
+				'message' => $sent->get_error_message(),
+			) );
+		} else {
+			wp_send_json_success( array(
+				'message' => __( 'Reminder E-Mail has been sent.', 'it-l10n-ithemes-security-pro' ),
 			) );
 		}
 	}
 
-	public function password_reset( $user, $new_pass ) {
-		if ( defined( 'ITSEC_DISABLE_PASSWORD_STRENGTH' ) && ITSEC_DISABLE_PASSWORD_STRENGTH ) {
-			delete_user_meta( $user->ID, 'itsec-password-strength' );
-		} else {
-			update_user_meta( $user->ID, 'itsec-password-strength', $this->get_password_score( $new_pass, $user ) );
-		}
-
-		update_user_meta( $user->ID, 'itsec-password-updated', time() );
-	}
-
-	public function send_password_change_email( $send_email, $user, $userdata ) {
-		if ( ! empty( $this->user_pass ) && wp_check_password( $this->user_pass, $userdata['user_pass'] ) && ( ! defined( 'ITSEC_DISABLE_PASSWORD_STRENGTH' ) || ! ITSEC_DISABLE_PASSWORD_STRENGTH ) ) {
-			// IF we have the correct password, check it's strength and store that
-			update_user_meta( $user['ID'], 'itsec-password-strength', $this->get_password_score( $this->user_pass, $userdata ) );
-			// No reason to keep this lingering
-			unset( $this->user_pass );
-		} else {
-			// If we didn't find and intercept the password to test for strength, or if the password we got isn't right, remove the strength data and get it on next login
-			delete_user_meta( $user['ID'], 'itsec-password-strength' );
-		}
-
-		// password has been updated, save the time time
-		update_user_meta( $user['ID'], 'itsec-password-updated', time() );
-	}
-
-	public function user_profile_update_errors( $errors, $update, $user ) {
-		if ( isset( $user->user_pass ) ) {
-			$this->user_pass = $user->user_pass;
-		}
-	}
-
-	public function wp_authenticate_user( $user, $password ) {
-		// If this isn't a valid user, don't continue
-		if ( is_wp_error($user) ) {
-			return $user;
-		}
-
-		if ( defined( 'ITSEC_DISABLE_PASSWORD_STRENGTH' ) && ITSEC_DISABLE_PASSWORD_STRENGTH ) {
-			return $user;
-		}
-
-		// If we've already stored the security of this user's password, don't continue
-		$password_strength = get_user_meta( $user->ID, 'itsec-password-strength', true );
-		if ( false !== $password_strength && '' !== $password_strength && in_array( $password_strength, range( 0, 4 ) )  ) {
-			return $user;
-		}
-
-		// If the password doesn't match, don't continue
-		if ( ! wp_check_password( $password, $user->user_pass, $user->ID ) ) {
-			return $user;
-		}
-
-		$password_strength = $this->get_password_score( $password, $user );
-
-		update_user_meta( $user->ID, 'itsec-password-strength', $password_strength );
-
-		return $user;
-	}
-
-	protected function get_password_score( $password, $user ) {
-		if ( is_numeric( $user ) ) {
-			$user = get_userdata( $user );
-		} elseif ( ( is_array( $user ) && is_int( $user_id = $user['ID'] ) ) || ( is_object( $user ) && ! is_a( $user, 'WP_User' ) && is_int( $user_id = $user->ID ) ) ) {
-			$user = get_userdata( $user_id );
-		}
-
-		$penalty_strings = array();
-		if ( is_a( $user, 'WP_User' ) ) {
-			$penalty_strings[] = $user->user_login;
-			$penalty_strings[] = $user->user_login;
-			$penalty_strings[] = $user->first_name;
-			$penalty_strings[] = $user->last_name;
-			$penalty_strings[] = $user->nickname;
-			$penalty_strings[] = $user->display_name;
-			$penalty_strings[] = $user->user_email;
-			$penalty_strings[] = $user->user_url;
-			$penalty_strings[] = $user->description;
-			// Add site title? ;
-			$penalty_strings[] = get_site_option( 'admin_email' );
-		}
-		// @todo filter these down by eliminating short words, etc as in password-strength-meter.js
-
-		$results = ITSEC_Lib::get_password_strength_results( $password, $penalty_strings );
-		return $results->score;
-	}
-
-	public function check_inactive_accounts() {
+	/**
+	 * Iterate over all users who haven't been active in the last 30 days and email admins the results.
+	 *
+	 * @param bool $sent
+	 * @param int  $last_sent
+	 *
+	 * @return bool
+	 */
+	public function check_inactive_accounts( $sent, $last_sent ) {
 		if ( defined( 'ITSEC_DISABLE_INACTIVE_USER_CHECK' ) && ITSEC_DISABLE_INACTIVE_USER_CHECK ) {
-			return;
+			return false;
 		}
 
 		$max_days = apply_filters( 'itsec_inactive_user_days', 30 );
@@ -406,46 +354,96 @@ class ITSEC_User_Security_Check {
 		$users = get_users( $args );
 
 		if ( empty( $users ) ) {
-			return;
+			return true;
 		}
 
-		$blogname = wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES );
+		$nc = ITSEC_Core::get_notification_center();
+		$mail = $nc->mail();
 
+		$mail->add_header( esc_html__( 'Inactive User Warning', 'it-l10n-ithemes-security-pro' ), esc_html__( 'Inactive User Warning', 'it-l10n-ithemes-security-pro' ) );
+		$mail->add_info_box( sprintf( _n( 'The following users have been inactive for more than %d day', 'The following users have been inactive for more than %d days', $max_days, 'it-l10n-ithemes-security-pro' ), $max_days ), 'warning' );
+		$mail->add_text( esc_html__( 'Please take the time to review the users and demote or delete any where it makes sense.', 'it-l10n-ithemes-security-pro' ) );
 
-		$merge_tags = array();
-		$merge_tags['{{title}}']               = sprintf( __( 'Inactive User Warning for <a href="%1$s" target="_blank" rel="noopener noreferrer" style="mso-line-height-rule: exactly;-ms-text-size-adjust: 100%%;-webkit-text-size-adjust: 100%%;color: #FFFFFF;font-weight: bold;text-decoration: underline;">%2$s</a>', 'it-l10n-ithemes-security-pro' ), get_site_url(), $blogname );
-		$merge_tags['{{heading}}']             = __( 'Inactive User Warning', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{warning-text}}']        = sprintf( _n( 'The following users have been inactive for more than %d day', 'The following users have been inactive for more than %d days', $max_days, 'it-l10n-ithemes-security-pro' ), $max_days );
-		$merge_tags['{{explanation}}']         = __( 'Please take the time to review the users and demote or delete any where it makes sense.', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{username-heading}}']    = __( 'Username', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{last-active-heading}}'] = __( 'Last Active', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{caption}}']             = __( 'Inactive Users', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{setup_url}}']           = admin_url( 'admin.php?page=itsec&module=user-security-check' );
-		$merge_tags['{{setup_cta_text}}']      = __( 'Edit Users', 'it-l10n-ithemes-security-pro' );
-		$merge_tags['{{user-rows}}']           = '';
+		$table_rows = array();
 
-		foreach ( $users as $u ) {
-			update_user_meta( $u->ID, 'itsec_user_activity_last_seen_notification_sent', true );
-			$merge_tags['{{user-rows}}'] .= sprintf( '
-			<tr class="file-change-table-row">
-				<td class="file-change-table-cell file-name-cell" style="text-align:left; padding: 1em;word-break: break-word;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%%;-webkit-text-size-adjust: 100%%;font: 16px \'Helvetica\', sans-serif;">%1$s</td>
-				<td class="file-change-table-cell" style="text-align:right; padding: 1em;word-break: break-word;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%%;-webkit-text-size-adjust: 100%%;color: #505050;font: 16px \'Helvetica\', sans-serif;">%2$s</td>
-			</tr>', $u->user_login, $this->get_last_active_cell_contents( $u->ID ) );
+		foreach ( $users as $user ) {
+			update_user_meta( $user->ID, 'itsec_user_activity_last_seen_notification_sent', true );
+
+			$roles = array_map( 'translate_user_role', $user->roles );
+			$role  = wp_sprintf( '%l', $roles );
+
+			$table_rows[] = array( $user->user_login, $role, $this->get_last_active_cell_contents( $user->ID ) );
 		}
 
-		$subject = sprintf( __( '[%s] Inactive Users', 'it-l10n-ithemes-security-pro' ), $blogname );
-		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+		$mail->add_table( array( esc_html__( 'Username', 'it-l10n-ithemes-security-pro' ), esc_html__( 'Role', 'it-l10n-ithemes-security-pro' ), esc_html__( 'Last Active', 'it-l10n-ithemes-security-pro' ) ), $table_rows );
+		$mail->add_button( esc_html__( 'Edit Users', 'it-l10n-ithemes-security-pro' ), ITSEC_Mail::filter_admin_page_url( admin_url( 'admin.php?page=itsec&module=user-security-check' ) ) );
+		$mail->add_footer();
 
-		$message = file_get_contents( dirname( __FILE__ ) . '/email-templates/inactive-users.html' );
-		$message = str_replace( array_keys( $merge_tags ), $merge_tags, $message );
+		return $nc->send( 'inactive-users', $mail );
+	}
 
+	/**
+	 * Register Two Factor Reminder and Inactive Users notifications.
+	 *
+	 * @param array $notifications
+	 *
+	 * @return array
+	 */
+	public function register_notifications( $notifications ) {
 
-		$recipients  = ITSEC_Modules::get_setting( 'global', 'notification_email' );
+		$notifications['two-factor-reminder'] = array(
+			'subject_editable' => true,
+			'message_editable' => true,
+			'schedule'         => ITSEC_Notification_Center::S_NONE,
+			'recipient'        => ITSEC_Notification_Center::R_USER,
+			'tags'			   => array( 'username', 'display_name', 'requester_username', 'requester_display_name', 'site_title' ),
+			'module'		   => 'user-security-check',
+		);
 
-		foreach ( $recipients as $recipient ) {
-			if ( is_email( trim( $recipient ) ) ) {
-				wp_mail( trim( $recipient ), $subject, $message, $headers );
-			}
-		}
+		$notifications['inactive-users'] = array(
+			'subject_editable' => true,
+			'schedule'         => ITSEC_Notification_Center::S_CONFIGURABLE,
+			'recipient'        => ITSEC_Notification_Center::R_USER_LIST_ADMIN_UPGRADE,
+			'optional'		   => true,
+			'module'		   => 'user-security-check',
+		);
+
+		return $notifications;
+	}
+
+	/**
+	 * Get the translated strings for the Two Factor Reminder email.
+	 *
+	 * @return array
+	 */
+	public function two_factor_reminder_strings() {
+		return array(
+			'label'       => esc_html__( 'Two-Factor Reminder Notice', 'it-l10n-ithemes-security-pro' ),
+			'description' => sprintf( esc_html__( 'The %1$sUser Security Check%2$s module allows you to remind users to setup two-factor authentication for their accounts.', 'it-l10n-ithemes-security-pro' ), '<a href="#" data-module-link="user-security-check">', '</a>' ),
+			'subject'     => esc_html__( 'Please Set Up Two Factor Authentication', 'it-l10n-ithemes-security-pro' ),
+			'tags'        => array(
+				'username'               => esc_html__( "The recipient's WordPress username.", 'it-l10n-ithemes-security-pro' ),
+				'display_name'           => esc_html__( "The recipient's WordPress display name.", 'it-l10n-ithemes-security-pro' ),
+				'requester_username'     => esc_html__( "The requester's WordPress username.", 'it-l10n-ithemes-security-pro' ),
+				'requester_display_name' => esc_html__( "The requester's WordPress display name.", 'it-l10n-ithemes-security-pro' ),
+				'site_title'             => esc_html__( 'The WordPress Site Title. Can be changed under Settings -> General -> Site Title', 'it-l10n-ithemes-security-pro' )
+			),
+			'message'     => esc_html__( 'Hi {{ $display_name }},
+			
+{{ $requester_display_name }} from {{ $site_title }} has asked that you set up Two Factor Authentication.', 'it-l10n-ithemes-security-pro' ),
+		);
+	}
+
+	/**
+	 * Get the translated strings for the Inactive Users email.
+	 *
+	 * @return array
+	 */
+	public function inactive_users_strings() {
+		return array(
+			'label'       => esc_html__( 'Inactive Users', 'it-l10n-ithemes-security-pro' ),
+			'description' => sprintf( esc_html__( 'The %1$sUser Security Check%2$s module sends a list of users who have not been active in the last 30 days so you can consider demoting or removing users.', 'it-l10n-ithemes-security-pro' ), '<a href="#" data-module-link="user-security-check">', '</a>' ),
+			'subject'     => esc_html__( 'Inactive Users', 'it-l10n-ithemes-security-pro' ),
+		);
 	}
 }

@@ -20,6 +20,14 @@ class ITSEC_WP_Users_List_Table extends WP_Users_List_Table {
 	 */
 	public function __construct( $args = array() ) {
 		parent::__construct( $args );
+
+		add_filter( 'users_list_table_query_args', static function ( $args ) {
+			if ( is_multisite() && current_user_can( 'manage_network_users' ) ) {
+				$args['blog_id'] = null;
+			}
+
+			return $args;
+		} );
 	}
 
 	/**
@@ -60,6 +68,19 @@ class ITSEC_WP_Users_List_Table extends WP_Users_List_Table {
 		);
 
 		return $c;
+	}
+
+	/**
+	 * Get number of items to display on a single page
+	 *
+	 * @since 3.1.0
+	 *
+	 * @param string $option
+	 * @param int    $default
+	 * @return int
+	 */
+	protected function get_items_per_page( $option, $default = 20 ) {
+		return apply_filters( 'itsec_user_security_check_users_per_page', 20 );
 	}
 
 	/**
