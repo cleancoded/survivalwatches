@@ -1,40 +1,47 @@
 # BEGIN iThemes Security - Do not modify or remove this line
 # iThemes Security Config Details: 2
-	# Ban Hosts - Security > Settings > Banned Users
-	SetEnvIF REMOTE_ADDR "^3\.218\.151\.210$" DenyAccess
-	SetEnvIF X-FORWARDED-FOR "^3\.218\.151\.210$" DenyAccess
-	SetEnvIF X-CLUSTER-CLIENT-IP "^3\.218\.151\.210$" DenyAccess
+	# Pass through Authorization header.
+	<IfModule mod_rewrite.c>
+		RewriteEngine On
+		RewriteCond %{HTTP:Authorization} ^(.*)
+		RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+	</IfModule>
 
-	SetEnvIF REMOTE_ADDR "^209\.141\.46\.254$" DenyAccess
-	SetEnvIF X-FORWARDED-FOR "^209\.141\.46\.254$" DenyAccess
-	SetEnvIF X-CLUSTER-CLIENT-IP "^209\.141\.46\.254$" DenyAccess
+	# Ban Hosts - Security > Settings > Banned Users
+	SetEnvIF REMOTE_ADDR "^209\.141\.48\.242$" DenyAccess
+	SetEnvIF X-FORWARDED-FOR "^209\.141\.48\.242$" DenyAccess
+	SetEnvIF X-CLUSTER-CLIENT-IP "^209\.141\.48\.242$" DenyAccess
 
 	SetEnvIF REMOTE_ADDR "^209\.141\.50\.5$" DenyAccess
 	SetEnvIF X-FORWARDED-FOR "^209\.141\.50\.5$" DenyAccess
 	SetEnvIF X-CLUSTER-CLIENT-IP "^209\.141\.50\.5$" DenyAccess
 
-	SetEnvIF REMOTE_ADDR "^209\.141\.48\.242$" DenyAccess
-	SetEnvIF X-FORWARDED-FOR "^209\.141\.48\.242$" DenyAccess
-	SetEnvIF X-CLUSTER-CLIENT-IP "^209\.141\.48\.242$" DenyAccess
+	SetEnvIF REMOTE_ADDR "^209\.141\.46\.254$" DenyAccess
+	SetEnvIF X-FORWARDED-FOR "^209\.141\.46\.254$" DenyAccess
+	SetEnvIF X-CLUSTER-CLIENT-IP "^209\.141\.46\.254$" DenyAccess
+
+	SetEnvIF REMOTE_ADDR "^3\.218\.151\.210$" DenyAccess
+	SetEnvIF X-FORWARDED-FOR "^3\.218\.151\.210$" DenyAccess
+	SetEnvIF X-CLUSTER-CLIENT-IP "^3\.218\.151\.210$" DenyAccess
 
 	<IfModule mod_authz_core.c>
 		<RequireAll>
 			Require all granted
 			Require not env DenyAccess
-			Require not ip 3.218.151.210
-			Require not ip 209.141.46.254
-			Require not ip 209.141.50.5
 			Require not ip 209.141.48.242
+			Require not ip 209.141.50.5
+			Require not ip 209.141.46.254
+			Require not ip 3.218.151.210
 		</RequireAll>
 	</IfModule>
 	<IfModule !mod_authz_core.c>
 		Order allow,deny
 		Allow from all
 		Deny from env=DenyAccess
-		Deny from 3.218.151.210
-		Deny from 209.141.46.254
-		Deny from 209.141.50.5
 		Deny from 209.141.48.242
+		Deny from 209.141.50.5
+		Deny from 209.141.46.254
+		Deny from 3.218.151.210
 	</IfModule>
 
 	<IfModule mod_rewrite.c>
@@ -47,10 +54,6 @@
 		RewriteCond %{HTTP_REFERER} !^https?://(([^/]+\.)?survivalwatches\.com|jetpack\.wordpress\.com/jetpack-comment)(/|$) [NC]
 		RewriteRule ^.* - [F]
 	</IfModule>
-
-	# Enable the hide backend feature - Security > Settings > Hide Login Area > Hide Backend
-	RewriteRule ^(/)?blackbear/?$ /wp-login.php [QSA,L]
-	RewriteRule ^(/)?wp-register-php/?$ /wplogin?action=register [QSA,L]
 # END iThemes Security - Do not modify or remove this line
 
 # BEGIN WordPress
