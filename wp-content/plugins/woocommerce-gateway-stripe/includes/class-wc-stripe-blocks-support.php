@@ -100,17 +100,61 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$this->get_payment_request_javascript_params(),
 			// Blocks-specific options
 			[
-				'title'          => $this->get_title(),
-				'icons'          => $this->get_icons(),
-				'supports'       => $this->get_supported_features(),
-				'showSavedCards' => $this->get_show_saved_cards(),
-				'showSaveOption' => $this->get_show_save_option(),
-				'isAdmin'        => is_admin(),
-				'button'         => [
+				'title'                          => $this->get_title(),
+				'icons'                          => $this->get_icons(),
+				'supports'                       => $this->get_supported_features(),
+				'showSavedCards'                 => $this->get_show_saved_cards(),
+				'showSaveOption'                 => $this->get_show_save_option(),
+				'isAdmin'                        => is_admin(),
+				'shouldShowPaymentRequestButton' => $this->should_show_payment_request_button(),
+				'button'                         => [
 					'customLabel' => $this->payment_request_configuration->get_button_label(),
 				],
 			]
 		);
+	}
+
+	/**
+	 * Returns true if the PRB should be shown on the current page, false otherwise.
+	 *
+	 * Note: We use `has_block()` in this function, which isn't supported until WP 5.0. However,
+	 * WooCommerce Blocks hasn't supported a WP version lower than 5.0 since 2019. Since this
+	 * function is only called when the WooCommerce Blocks extension is available, it should be
+	 * safe to call `has_block()` here.
+	 * That said, we only run those checks if the `has_block()` function exists, just in case.
+	 *
+	 * @return boolean  True if PRBs should be displayed, false otherwise
+	 */
+	private function should_show_payment_request_button() {
+		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
+		//       to version 5.0.
+		if ( function_exists( 'has_block' ) ) {
+			// Don't show if PRBs are supposed to be hidden on the cart page.
+			if (
+				has_block( 'woocommerce/cart' )
+				&& ! $this->payment_request_configuration->should_show_prb_on_cart_page()
+			) {
+				return false;
+			}
+
+			// Don't show if PRBs are supposed to be hidden on the checkout page.
+			if (
+				has_block( 'woocommerce/checkout' )
+				&& ! $this->payment_request_configuration->should_show_prb_on_checkout_page()
+			) {
+				return false;
+			}
+
+			// Don't show PRB if there are unsupported products in the cart.
+			if (
+				( has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) )
+				&& ! $this->payment_request_configuration->allowed_items_in_cart()
+			) {
+				return false;
+			}
+		}
+
+		return $this->payment_request_configuration->should_show_payment_request_button();
 	}
 
 	/**
@@ -259,8 +303,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				|| ! empty( $result->payment_details['setup_intent_secret'] )
 			)
 		) {
-			$payment_details                          = $result->payment_details;
-			$payment_details['verification_endpoint'] = add_query_arg(
+			$payment_details       = $result->payment_details;
+			$verification_endpoint = add_query_arg(
 				[
 					'order'       => $context->order->get_id(),
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
@@ -268,6 +312,15 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				],
 				home_url() . \WC_Ajax::get_endpoint( 'wc_stripe_verify_intent' )
 			);
+
+			if ( ! empty( $payment_details['save_payment_method'] ) ) {
+				$verification_endpoint = add_query_arg(
+					[ 'save_payment_method' => true ],
+					$verification_endpoint
+				);
+			}
+
+			$payment_details['verification_endpoint'] = $verification_endpoint;
 			$result->set_payment_details( $payment_details );
 			$result->set_status( 'success' );
 		}
