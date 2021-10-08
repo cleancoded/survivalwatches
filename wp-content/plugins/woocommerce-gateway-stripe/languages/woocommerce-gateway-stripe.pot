@@ -3,6 +3,10 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "X-Generator: babel-plugin-makepot\n"
 
+#: client/data/account/resolvers.js:18
+msgid "Error retrieving account data."
+msgstr ""
+
 #: client/data/settings/resolvers.js:18
 msgid "Error retrieving settings."
 msgstr ""
@@ -28,26 +32,38 @@ msgstr ""
 msgid "Payment methods that need Stripe:"
 msgstr ""
 
-#: client/settings/general-settings-section/payment-method-setup-help.js:23
-#. %s: a payment method name.
+#: client/settings/general-settings-section/section-footer.js:12
+msgid "Get more payment methods"
+msgstr ""
+
+#: client/settings/payment-settings/general-settings-section.js:23
+msgid "Enable Stripe"
+msgstr ""
+
+#: client/settings/payment-settings/general-settings-section.js:27
+msgid "When enabled, payment methods powered by Stripe will appear on checkout."
+msgstr ""
+
+#: client/settings/payment-settings/general-settings-section.js:36
+msgid "Enable test mode"
+msgstr ""
+
+#: client/settings/payment-settings/general-settings-section.js:41
 msgid ""
-"%s won't be visible to your customers until you provide the required "
-"information. Follow the instructions sent by our partner Stripe to your "
-"email address."
+"Use {{testCardNumbersLink /}} to simulate various transactions. "
+"{{learnMoreLink/}}"
 msgstr ""
 
-#: client/settings/general-settings-section/payment-method-setup-help.js:30
-msgid "Pending activation"
+#: client/settings/payment-settings/general-settings-section.js:62
+msgid "Edit account keys"
 msgstr ""
 
-#: client/settings/general-settings-section/upe-opt-in-banner.js:24
-msgid "Enable the new Stripe checkout experience"
+#: client/settings/payments-and-transactions-section/statement-preview/index.js:42
+msgid "Transaction"
 msgstr ""
 
-#: client/settings/general-settings-section/upe-opt-in-banner.js:28
-msgid ""
-"Get early access to additional payment methods and an improved checkout "
-"experience, now available to some merchants."
+#: client/settings/payments-and-transactions-section/statement-preview/index.js:43
+msgid "Amount"
 msgstr ""
 
 #: client/settings/save-settings-section/index.js:23
