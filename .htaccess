@@ -8,6 +8,10 @@
 	</IfModule>
 
 	# Ban Hosts - Security > Settings > Banned Users
+	SetEnvIF REMOTE_ADDR "^34\.207\.63\.163$" DenyAccess
+	SetEnvIF X-FORWARDED-FOR "^34\.207\.63\.163$" DenyAccess
+	SetEnvIF X-CLUSTER-CLIENT-IP "^34\.207\.63\.163$" DenyAccess
+
 	SetEnvIF REMOTE_ADDR "^34\.203\.33\.138$" DenyAccess
 	SetEnvIF X-FORWARDED-FOR "^34\.203\.33\.138$" DenyAccess
 	SetEnvIF X-CLUSTER-CLIENT-IP "^34\.203\.33\.138$" DenyAccess
@@ -48,6 +52,7 @@
 		<RequireAll>
 			Require all granted
 			Require not env DenyAccess
+			Require not ip 34.207.63.163
 			Require not ip 34.203.33.138
 			Require not ip 210.16.189.15
 			Require not ip 210.16.189.8
@@ -63,6 +68,7 @@
 		Order allow,deny
 		Allow from all
 		Deny from env=DenyAccess
+		Deny from 34.207.63.163
 		Deny from 34.203.33.138
 		Deny from 210.16.189.15
 		Deny from 210.16.189.8
