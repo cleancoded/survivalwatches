@@ -198,7 +198,7 @@ if ( !class_exists( 'BW_Support' ) ) {
 					$credits_html = '<div class="bestwebsite_footer_credits"><p>Another website by <a class="bw-logo" href="https://bestwebsite.com?referred_by='.get_site_url().'" target="_blank" rel="'.$relattr.'"><img src="'.$image.'" height="25" width="94" style="width: auto; height: 25px;" alt="Best Website Nashville" /></a></p></div>';
 					echo $credits_html;
 				} else {
-					$credits_html = '<div class="bestwebsite_footer_credits"><p>Another website by <a href="https://bestwebsite.com?referred_by='.get_site_url().'" target="_blank" rel="'.$relattr.'">Best Website Nashville</a></p></div>';
+					$credits_html = '<div class="bestwebsite_footer_credits"><p>Another website by&nbsp;<a href="https://bestwebsite.com?referred_by='.get_site_url().'" target="_blank" rel="'.$relattr.'">Best Website Nashville</a></p></div>';
 					echo $credits_html;
 				}
 			}
