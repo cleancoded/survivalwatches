@@ -1,0 +1,27 @@
+/**
+* BestWebsite Suppory Plugin Public CSS
+*/
+.bestwebsite_footer_credits{
+    clear: both;
+    text-align: center;
+    background: transparent;
+    margin: 0;
+}
+.bestwebsite_footer_credits{
+    margin: 0;
+    padding: 10px;
+    font-size: 12px;
+}
+.bestwebsite_footer_credits .bw-logo{
+	margin: auto 10px;
+	vertical-align: middle;
+}
+#footer-credit-options{
+	display: none;
+}
+.bestwebsite_footer_credits p{
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}

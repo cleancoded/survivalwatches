@@ -1,0 +1,50 @@
+/**
+* BestWebsite Suppory Plugin Admin CSS
+*/
+
+.bw-modules-container{
+	max-width: 90%;
+	margin: 25px auto;
+	background-color: #FFFFFF;
+}
+.bw-modules-header{
+	background-color: #2f4f75;
+	color: #FFFFFF;
+	padding: 10px 20px;
+	display: flex;
+}
+.bw-modules-header h2{
+	font-size: 2rem;
+	color: #FFFFFF;
+}
+.bw-modules-header a{
+    margin-left: auto;
+    margin-top: 28px;
+    color: #FFFFFF;
+    font-size: 1.5rem;
+}
+.bw-modules-footer{
+	background-color: #333333;
+	padding: 10px 20px;
+	color: #FFFFFF;
+	text-align: center;
+}
+.bw-modules-body{
+	padding: 20px;
+}
+.bw-modules-body form .widefat{
+	display: block;
+	padding: 20px;
+	font-size: 1rem;
+}
+.bw-modules-body form label{
+	font-size: 1rem;
+}
+.bw-modules-body .module-title{
+	font-size: 2rem;
+	font-weight: 300;
+	border-bottom: 1px solid #CCCCCC;
+	line-height: 2;
+	display: inline-block;
+	clear: both;
+}
