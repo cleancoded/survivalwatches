@@ -52,8 +52,18 @@ class autoptimizeImages
         // get service availability and add it to the options-array.
         $value['availabilities'] = autoptimizeOptionWrapper::get_option( 'autoptimize_service_availablity' );
 
-        if ( empty( $value['availabilities'] ) ) {
-            $value['availabilities'] = autoptimizeUtils::check_service_availability( true );
+        if ( empty( $value['availabilities'] || ! is_array( $value['availabilities'] ) ) ) {
+            $value['availabilities'] = null;
+
+            if ( autoptimizeImages::imgopt_active() ) {
+                $value['availabilities'] = autoptimizeUtils::check_service_availability( true );
+            }
+
+            if ( null === $value['availabilities'] ) {
+                // We can't seem to check service availability, use mock result with imgopt status UP.
+                $_mock_settings          = array( 'extra_imgopt' => array( 'status' => 'up', 'hosts' => array( '1' => 'https://sp-ao.shortpixel.ai/' ) ), 'critcss' => array( 'status' => 'up' ) );
+                $value['availabilities'] = $_mock_settings;
+            }
         }
 
         return $value;
@@ -369,7 +379,8 @@ class autoptimizeImages
             } elseif ( 0 === strpos( $result, '/' ) ) {
                 // Root-relative...
                 $result = $parsed_site_url['scheme'] . '://' . $parsed_site_url['host'] . $result;
-            } elseif ( ! empty( $cdn_domain ) && strpos( $result, $cdn_domain ) !== 0 ) {
+            } elseif ( ! empty( $cdn_domain ) && false === strpos( $this->get_imgopt_host(), $cdn_domain ) && strpos( $result, $cdn_domain ) !== 0 ) {
+                // remove CDN except if it is the image optimization one.
                 $result = str_replace( $cdn_domain, $parsed_site_url['host'], $result );
             }
 
@@ -582,7 +593,7 @@ class autoptimizeImages
                             if ( isset( $indiv_srcset_parts[1] ) && rtrim( $indiv_srcset_parts[1], 'w' ) !== $indiv_srcset_parts[1] ) {
                                 $imgopt_w = rtrim( $indiv_srcset_parts[1], 'w' );
                             }
-                            if ( $this->can_optimize_image( $indiv_srcset_parts[0], $tag, $testing ) ) {
+                            if ( $this->can_optimize_image( $indiv_srcset_parts[0], $tag, $testing ) && false === apply_filters( 'autoptimize_filter_imgopt_do_spai', false ) ) {
                                 $imgopt_url = $this->build_imgopt_url( $indiv_srcset_parts[0], $imgopt_w, '' );
                                 $srcset     = str_replace( $indiv_srcset_parts[0], $imgopt_url, $srcset );
                             }
@@ -602,7 +613,7 @@ class autoptimizeImages
                     foreach ( $urls as $url ) {
                         $full_src_orig = $url[0];
                         $url           = $url[1];
-                        if ( $this->can_optimize_image( $url, $tag, $testing ) ) {
+                        if ( $this->can_optimize_image( $url, $tag, $testing ) && false === apply_filters( 'autoptimize_filter_imgopt_do_spai', false ) ) {
                             $imgopt_url      = $this->build_imgopt_url( $url, $imgopt_w, $imgopt_h );
                             $full_imgopt_src = str_replace( $url, $imgopt_url, $full_src_orig );
                             $tag             = str_replace( $full_src_orig, $full_imgopt_src, $tag );
@@ -624,7 +635,7 @@ class autoptimizeImages
                     $_url = $this->normalize_img_url( $_url );
 
                     $placeholder = '';
-                    if ( $this->can_optimize_image( $_url, $tag ) && apply_filters( 'autoptimize_filter_imgopt_lazyload_dolqip', true, $_url ) ) {
+                    if ( $this->can_optimize_image( $_url, $tag ) && apply_filters( 'autoptimize_filter_imgopt_lazyload_dolqip', true, $_url ) && false === apply_filters( 'autoptimize_filter_imgopt_do_spai', false ) ) {
                         $lqip_w = '';
                         $lqip_h = '';
                         if ( isset( $imgopt_w ) && ! empty( $imgopt_w ) ) {
@@ -694,7 +705,7 @@ class autoptimizeImages
         return $out;
     }
 
-    public function get_size_from_tag( $tag ) {
+    public static function get_size_from_tag( $tag ) {
         // reusable function to extract widht and height from an image tag
         // enforcing a filterable maximum width and height (default 4999X4999).
         $width  = '';
@@ -757,7 +768,7 @@ class autoptimizeImages
         return $lazyload_return;
     }
 
-    public function check_nolazy() {
+    public static function check_nolazy() {
         if ( array_key_exists( 'ao_nolazy', $_GET ) && '1' === $_GET['ao_nolazy'] ) {
             return true;
         } else {
@@ -886,7 +897,7 @@ class autoptimizeImages
         echo apply_filters( 'autoptimize_filter_imgopt_lazyload_js', '<script async' . $type_js . $noptimize_flag . ' src=\'' . $lazysizes_js . '\'></script>' );
     }
 
-    public function get_cdn_url() {
+    public static function get_cdn_url() {
         // getting CDN url here to avoid having to make bigger changes to autoptimizeBase.
         static $cdn_url = null;
 
@@ -1082,7 +1093,7 @@ class autoptimizeImages
     </style>
     <script>document.title = "Autoptimize: <?php _e( 'Images', 'autoptimize' ); ?> " + document.title;</script>
     <div class="wrap">
-    <h1><?php _e( 'Autoptimize Settings', 'autoptimize' ); ?></h1>
+    <h1><?php apply_filters( 'autoptimize_filter_settings_is_pro', false ) ? _e( 'Autoptimize Pro Settings', 'autoptimize' ) : _e( 'Autoptimize Settings', 'autoptimize' ); ?></h1>
         <?php echo autoptimizeConfig::ao_admin_tabs(); ?>
         <?php if ( 'down' === $options['availabilities']['extra_imgopt']['status'] ) { ?>
             <div class="notice-warning notice"><p>
