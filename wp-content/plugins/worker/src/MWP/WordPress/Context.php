@@ -19,6 +19,8 @@ class MWP_WordPress_Context
 
     private $constants;
 
+    private $useGlobals;
+
     /**
      * @param array $globals The context to work with. Defaults to $GLOBALS, using the same global variables as WordPress.
      * @param array $constants The list of constants to use. Defaults to global constants.
@@ -27,8 +29,9 @@ class MWP_WordPress_Context
     {
         if ($globals !== null) {
             $this->context = $globals;
+            $this->useGlobals = false;
         } else {
-            $this->context = &$GLOBALS;
+            $this->useGlobals = true;
         }
 
         if ($constants !== null) {
@@ -38,11 +41,19 @@ class MWP_WordPress_Context
 
     public function set($name, $value)
     {
-        $this->context[$name] = $value;
+        if ($this->useGlobals) {
+            $GLOBALS[$name] = $value;
+        } else {
+            $this->context[$name] = $value;
+        }
     }
 
     public function get($name)
     {
+        if ($this->useGlobals) {
+            return isset($GLOBALS[$name]) ? $GLOBALS[$name] : null;
+        }
+
         return isset($this->context[$name]) ? $this->context[$name] : null;
     }
 
@@ -51,7 +62,7 @@ class MWP_WordPress_Context
      */
     public function getDb()
     {
-        return $this->context['wpdb'];
+        return $this->get('wpdb');
     }
 
     /**
@@ -75,7 +86,7 @@ class MWP_WordPress_Context
      */
     public function getVersion()
     {
-        return $this->context['wp_version'];
+        return $this->get('wp_version');
     }
 
     /**
@@ -191,7 +202,7 @@ class MWP_WordPress_Context
      */
     public function getCurrentBlogId()
     {
-        return abs(intval($this->context['blog_id']));
+        return abs(intval($this->get('blog_id')));
     }
 
     /**
@@ -290,7 +301,7 @@ class MWP_WordPress_Context
     public function getThemes()
     {
         // When the plugin is MU-loaded, the WordPress theme directories are not set.
-        if (empty($this->context['wp_theme_directories'])) {
+        if (empty($this->get('wp_theme_directories'))) {
             // Register the default theme directory root.
             register_theme_directory(get_theme_root());
         }
@@ -305,7 +316,7 @@ class MWP_WordPress_Context
     public function getCurrentTheme()
     {
         // When the plugin is MU-loaded, the WordPress theme directories are not set.
-        if ($this->isMustUse() && empty($this->context['wp_theme_directories'])) {
+        if ($this->isMustUse() && empty($this->get('wp_theme_directories'))) {
             // Register the default theme directory root.
             register_theme_directory(get_theme_root());
         }
@@ -356,7 +367,7 @@ class MWP_WordPress_Context
 
     private function isMustUse()
     {
-        if (empty($this->context['mwp_is_mu'])) {
+        if (empty($this->get('mwp_is_mu'))) {
             return false;
         }
 
@@ -450,7 +461,7 @@ class MWP_WordPress_Context
             throw new Exception(sprintf('Context value "%s" does not exist', $name));
         }
 
-        return $this->context[$name];
+        return $this->useGlobals ? $GLOBALS[$name] : $this->context[$name];
     }
 
     /**
@@ -460,7 +471,7 @@ class MWP_WordPress_Context
      */
     public function hasContextValue($name)
     {
-        return array_key_exists($name, $this->context);
+        return array_key_exists($name, $this->useGlobals ? $GLOBALS : $this->context);
     }
 
     public function getDropInPlugins()
@@ -590,17 +601,17 @@ class MWP_WordPress_Context
 
     public function requireWpRewrite()
     {
-        if (isset($this->context['wp_rewrite']) && $this->context['wp_rewrite'] instanceof WP_Rewrite) {
+        if ($this->get('wp_rewrite') instanceof WP_Rewrite) {
             return;
         }
 
         /** @handled class */
-        $this->context['wp_rewrite'] = new WP_Rewrite();
+        $this->set('wp_rewrite', new WP_Rewrite());
     }
 
     public function requireTaxonomies()
     {
-        if (!empty($this->context['wp_taxonomies'])) {
+        if (!empty($this->get('wp_taxonomies'))) {
             return;
         }
 
@@ -609,7 +620,7 @@ class MWP_WordPress_Context
 
     public function requirePostTypes()
     {
-        if (!empty($this->context['wp_post_types'])) {
+        if (!empty($this->get('wp_post_types'))) {
             return;
         }
 
@@ -618,7 +629,7 @@ class MWP_WordPress_Context
 
     public function requireTheme()
     {
-        if (!empty($this->context['wp_theme_directories'])) {
+        if (!empty($this->get('wp_theme_directories'))) {
             return;
         }
 
