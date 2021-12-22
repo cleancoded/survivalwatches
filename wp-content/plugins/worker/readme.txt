@@ -55,6 +55,9 @@ Check out the [ManageWP promo video](https://vimeo.com/220647227).
 https://vimeo.com/220647227
 
 == Changelog ==
+= 4.9.12 =
+- Fix: Resolved Worker white-labeling not working as expected.
+
 = 4.9.11 =
 - Fix: Ensure full compatibility with PHP 8.1
 

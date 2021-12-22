@@ -461,7 +461,12 @@ class MWP_WordPress_Context
             throw new Exception(sprintf('Context value "%s" does not exist', $name));
         }
 
-        return $this->useGlobals ? $GLOBALS[$name] : $this->context[$name];
+        // Ternary operator not used since it breaks the needed reference
+        if ($this->useGlobals) {
+            return $GLOBALS[$name];
+        }
+
+        return $this->context[$name];
     }
 
     /**
