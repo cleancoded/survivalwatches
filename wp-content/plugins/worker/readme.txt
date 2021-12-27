@@ -55,6 +55,9 @@ Check out the [ManageWP promo video](https://vimeo.com/220647227).
 https://vimeo.com/220647227
 
 == Changelog ==
+= 4.9.13 =
+- Fix: Resolved old PHP version compatibility issues.
+
 = 4.9.12 =
 - Fix: Resolved Worker white-labeling not working as expected.
 

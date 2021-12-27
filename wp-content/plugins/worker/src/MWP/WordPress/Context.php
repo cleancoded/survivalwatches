@@ -300,8 +300,10 @@ class MWP_WordPress_Context
 
     public function getThemes()
     {
+        $wpThemeDirectories = $this->get('wp_theme_directories');
+
         // When the plugin is MU-loaded, the WordPress theme directories are not set.
-        if (empty($this->get('wp_theme_directories'))) {
+        if (empty($wpThemeDirectories)) {
             // Register the default theme directory root.
             register_theme_directory(get_theme_root());
         }
@@ -315,8 +317,10 @@ class MWP_WordPress_Context
 
     public function getCurrentTheme()
     {
+        $wpThemeDirectories = $this->get('wp_theme_directories');
+
         // When the plugin is MU-loaded, the WordPress theme directories are not set.
-        if ($this->isMustUse() && empty($this->get('wp_theme_directories'))) {
+        if ($this->isMustUse() && empty($wpThemeDirectories)) {
             // Register the default theme directory root.
             register_theme_directory(get_theme_root());
         }
@@ -367,7 +371,9 @@ class MWP_WordPress_Context
 
     private function isMustUse()
     {
-        if (empty($this->get('mwp_is_mu'))) {
+        $mwpIsMu = $this->get('mwp_is_mu');
+
+        if (empty($mwpIsMu)) {
             return false;
         }
 
@@ -616,7 +622,9 @@ class MWP_WordPress_Context
 
     public function requireTaxonomies()
     {
-        if (!empty($this->get('wp_taxonomies'))) {
+        $wpTaxonomies = $this->get('wp_taxonomies');
+
+        if (!empty($wpTaxonomies)) {
             return;
         }
 
@@ -625,7 +633,9 @@ class MWP_WordPress_Context
 
     public function requirePostTypes()
     {
-        if (!empty($this->get('wp_post_types'))) {
+        $wpPostTypes = $this->get('wp_post_types');
+
+        if (!empty($wpPostTypes)) {
             return;
         }
 
@@ -634,7 +644,9 @@ class MWP_WordPress_Context
 
     public function requireTheme()
     {
-        if (!empty($this->get('wp_theme_directories'))) {
+        $wpThemeDirectories = $this->get('wp_theme_directories');
+
+        if (!empty($wpThemeDirectories)) {
             return;
         }
 
