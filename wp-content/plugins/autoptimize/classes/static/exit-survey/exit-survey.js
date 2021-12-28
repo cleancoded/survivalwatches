@@ -8,7 +8,9 @@
         $('#ao_uninstall_feedback_popup').appendTo($(targetElement).parent());
 
         $(targetElement).on('click', function (e) {
-            e.preventDefault();
+            if ( false == e.target.href.includes('https://wordpress.org/') ) {
+                e.preventDefault();
+            } 
             $('#ao_uninstall_feedback_popup ').addClass('active');
             $('body').addClass('ao-feedback-open');
             $('.ao-feedback-overlay').on('click', function () {
@@ -24,6 +26,7 @@
 
         $('#ao_uninstall_feedback_popup input[type="radio"]').on('change', function () {
             var radio = $(this);
+            $('p.last-attempt').hide();
             if (radio.parent().find('textarea').length > 0 &&
                 radio.parent().find('textarea').val().length === 0) {
                 $('#ao_uninstall_feedback_popup #ao-deactivate-yes').attr('disabled', 'disabled');
@@ -36,6 +39,7 @@
                 });
             } else {
                 $('#ao_uninstall_feedback_popup #ao-deactivate-yes').removeAttr('disabled');
+                $(this).siblings('p.last-attempt').show();
             }
         });
 
@@ -48,6 +52,13 @@
             if (redirectUrl !== '') {
                 location.href = redirectUrl;
             }
+        });
+
+        $('#ao_uninstall_feedback_popup #ao-deactivate-cancel').on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $('#ao_uninstall_feedback_popup ').removeClass('active');
+            $('body').removeClass('ao-feedback-open');
         });
 
         $('#ao_uninstall_feedback_popup #ao-deactivate-yes').on('click', function (e) {
@@ -72,6 +83,7 @@
                 'reason': reason,
                 'type': 'wordpress',
                 'version' : $('#ao_plugin_version').text().trim(),
+                'email': $('#ao_feedback998').val().trim(),
             };
             $.ajax({
                 type: 'POST',
