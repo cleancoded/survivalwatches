@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 5.6
-Tested up to: 5.8
+Tested up to: 5.9
 Requires PHP: 7.0
-Stable tag: 5.9.0
+Stable tag: 6.3.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -13,7 +13,7 @@ Take credit card payments on your store using Stripe.
 
 == Description ==
 
-Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDeal, Giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
+Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDEAL, giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
 
 = Take Credit card payments easily and directly on your store =
 
@@ -128,14 +128,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.9.0 - 2021-12-09 =
-* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
-* Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
-* Fix - Fix error when invalid card is used on Pay Order page.
-* Fix - Fix outdated data when using Blocks Checkout.
-* Add - List of payment methods that are not included for the merchant.
-* Tweak - Update how the new checkout experience is enabled.
-* Fix - Error on UPE checkout depending on the account keys set.
-* Tweak - Hide separate credit card form setting when UPE is enabled.
+= 6.3.0 - 2022-03-10 =
+* Tweak - Remove html from translatable strings.
+* Tweak - Revert the deprecation of the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters.
+* Tweak - Address minor styling issues in settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
