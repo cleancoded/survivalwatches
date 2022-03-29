@@ -5,6 +5,7 @@
 
 namespace Automattic\WooCommerce\Admin\Features\OnboardingTasks;
 
+use Automattic\WooCommerce\Admin\Features\OnboardingTasks\DeprecatedExtendedTask;
 use Automattic\WooCommerce\Admin\Features\OnboardingTasks\Task;
 use Automattic\WooCommerce\Admin\Loader;
 
@@ -48,6 +49,7 @@ class TaskLists {
 		'Shipping',
 		'Marketing',
 		'Appearance',
+		'AdditionalPayments',
 	);
 
 	/**
@@ -65,8 +67,9 @@ class TaskLists {
 	 */
 	public static function init() {
 		self::init_default_lists();
+		self::maybe_add_default_tasks();
 		add_action( 'admin_init', array( __CLASS__, 'set_active_task' ), 5 );
-		add_action( 'admin_init', array( __CLASS__, 'init_tasks' ) );
+		add_action( 'init', array( __CLASS__, 'init_tasks' ) );
 	}
 
 	/**
@@ -116,7 +119,11 @@ class TaskLists {
 	 * Most tasks do not need this.
 	 */
 	public static function set_active_task() {
-		if ( ! isset( $_GET[ Task::ACTIVE_TASK_TRANSIENT ] ) ) { // phpcs:ignore csrf ok.
+		if ( ! isset( $_GET[ Task::ACTIVE_TASK_TRANSIENT ] ) || ! current_user_can( 'manage_woocommerce' ) ) { // phpcs:ignore csrf ok.
+			return;
+		}
+		$referer = wp_get_referer();
+		if ( ! $referer || 0 !== strpos( $referer, wc_admin_url() ) ) {
 			return;
 		}
 
@@ -176,9 +183,10 @@ class TaskLists {
 
 		self::$default_tasks_loaded = true;
 
-		foreach ( self::DEFAULT_TASKS as $task ) {
-			$class = 'Automattic\WooCommerce\Admin\Features\OnboardingTasks\Tasks\\' . $task;
-			self::add_task( 'setup', $class::get_task() );
+		foreach ( self::DEFAULT_TASKS as $task_name ) {
+			$class = 'Automattic\WooCommerce\Admin\Features\OnboardingTasks\Tasks\\' . $task_name;
+			$task  = new $class();
+			self::add_task( $task->get_parent_id(), $task );
 		}
 	}
 
@@ -190,8 +198,9 @@ class TaskLists {
 	public static function maybe_add_extended_tasks( $extended_tasks ) {
 		$tasks = $extended_tasks ? $extended_tasks : array();
 
-		foreach ( $tasks as $extended_task ) {
-			self::add_task( $extended_task['list_id'], $extended_task );
+		foreach ( $tasks as $args ) {
+			$task = new DeprecatedExtendedTask( $args );
+			self::add_task( $task->get_parent_id(), $task );
 		}
 	}
 
@@ -266,7 +275,7 @@ class TaskLists {
 		);
 
 		foreach ( $tasks_to_search as $task ) {
-			if ( $id === $task->id ) {
+			if ( $id === $task->get_id() ) {
 				return $task;
 			}
 		}
