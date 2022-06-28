@@ -6,7 +6,7 @@ module.exports = api => {
 				'@automattic/jetpack-webpack-config/babel/preset',
 				{
 					presetEnv: {
-						corejs: require( 'core-js/package.json' ).version,
+						corejs: '3.8.3',
 						modules: false,
 						useBuiltIns: 'usage',
 					},

@@ -341,7 +341,6 @@ $GLOBALS['csstidy']['shorthands']['-moz-border-radius'] = 0;
  * @version 1.0
  * @see csstidy::property_is_next()
  */
-$GLOBALS['csstidy']['all_properties']['accent-color']                = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['align-content']               = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['align-items']                 = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['align-self']                  = 'CSS3.0';
@@ -357,7 +356,6 @@ $GLOBALS['csstidy']['all_properties']['animation-name']              = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['animation-play-state']        = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['animation-timing-function']   = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['appearance']                  = 'CSS3.0';
-$GLOBALS['csstidy']['all_properties']['aspect-ratio']                = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['azimuth']                     = 'CSS2.0,CSS2.1,CSS3.0';
 $GLOBALS['csstidy']['all_properties']['backface-visibility']         = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['background']                  = 'CSS1.0,CSS2.0,CSS2.1,CSS3.0';
@@ -475,7 +473,6 @@ $GLOBALS['csstidy']['all_properties']['font-stretch']                = 'CSS2.0,C
 $GLOBALS['csstidy']['all_properties']['font-style']                  = 'CSS1.0,CSS2.0,CSS2.1,CSS3.0';
 $GLOBALS['csstidy']['all_properties']['font-variant']                = 'CSS1.0,CSS2.0,CSS2.1,CSS3.0';
 $GLOBALS['csstidy']['all_properties']['font-weight']                 = 'CSS1.0,CSS2.0,CSS2.1,CSS3.0';
-$GLOBALS['csstidy']['all_properties']['gap']                         = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['grid']                        = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['grid-area']                   = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['grid-auto-columns']           = 'CSS3.0';
@@ -664,7 +661,6 @@ $GLOBALS['csstidy']['all_properties']['text-outline']                = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['text-shadow']                 = 'CSS2.0,CSS3.0';
 $GLOBALS['csstidy']['all_properties']['text-space-collapse']         = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['text-transform']              = 'CSS1.0,CSS2.0,CSS2.1,CSS3.0';
-$GLOBALS['csstidy']['all_properties']['text-underline-offset']       = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['text-underline-position']     = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['text-wrap']                   = 'CSS3.0';
 $GLOBALS['csstidy']['all_properties']['top']                         = 'CSS2.0,CSS2.1,CSS3.0';

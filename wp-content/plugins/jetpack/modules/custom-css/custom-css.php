@@ -1895,7 +1895,7 @@ if ( ! function_exists( 'safecss_class' ) ) :
 		/**
 		 * Safe CSS Class.
 		 */
-		class safecss extends csstidy_optimise { // phpcs:ignore
+		class safecss extends csstidy_optimise { // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound, Generic.Classes.OpeningBraceSameLine.ContentAfterBrace, PEAR.NamingConventions.ValidClassName.StartWithCapital
 
 			/**
 			 * Add action to fire after parsing CSS.

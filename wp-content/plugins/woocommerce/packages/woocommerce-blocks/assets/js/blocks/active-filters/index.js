@@ -2,9 +2,8 @@
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { createBlock, registerBlockType } from '@wordpress/blocks';
-import { toggle } from '@woocommerce/icons';
-import { Icon } from '@wordpress/icons';
+import { registerBlockType } from '@wordpress/blocks';
+import { Icon, toggle } from '@woocommerce/icons';
 import classNames from 'classnames';
 import { useBlockProps } from '@wordpress/block-editor';
 
@@ -19,7 +18,7 @@ registerBlockType( 'woocommerce/active-filters', {
 	icon: {
 		src: (
 			<Icon
-				icon={ toggle }
+				srcElement={ toggle }
 				className="wc-block-editor-components-block-icon"
 			/>
 		),
@@ -54,29 +53,6 @@ registerBlockType( 'woocommerce/active-filters', {
 			type: 'number',
 			default: 3,
 		},
-	},
-	transforms: {
-		from: [
-			{
-				type: 'block',
-				blocks: [ 'core/legacy-widget' ],
-				// We can't transform if raw instance isn't shown in the REST API.
-				isMatch: ( { idBase, instance } ) =>
-					idBase === 'woocommerce_layered_nav_filters' &&
-					!! instance?.raw,
-				transform: ( { instance } ) =>
-					createBlock( 'woocommerce/active-filters', {
-						displayStyle: 'list',
-						heading:
-							instance?.raw?.title ||
-							__(
-								'Active filters',
-								'woocommerce'
-							),
-						headingLevel: 3,
-					} ),
-			},
-		],
 	},
 	edit,
 	// Save the props to post content.

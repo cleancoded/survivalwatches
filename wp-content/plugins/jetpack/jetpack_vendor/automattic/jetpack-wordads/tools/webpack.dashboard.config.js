@@ -28,11 +28,7 @@ module.exports = {
 			...jetpackWebpackConfig.resolve.alias,
 			fs: false,
 		},
-		modules: [
-			path.resolve( __dirname, '../src/dashboard' ),
-			'node_modules',
-			path.resolve( __dirname, '../node_modules' ), // for core-js
-		],
+		modules: [ path.resolve( __dirname, '../src/dashboard' ), 'node_modules' ],
 	},
 	plugins: [
 		...jetpackWebpackConfig.StandardPlugins( {

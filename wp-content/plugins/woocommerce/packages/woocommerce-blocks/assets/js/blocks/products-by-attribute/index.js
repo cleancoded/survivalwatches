@@ -2,7 +2,7 @@
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { Icon, category } from '@wordpress/icons';
+import { Icon, tags } from '@woocommerce/icons';
 import { registerBlockType } from '@wordpress/blocks';
 import { getSetting } from '@woocommerce/settings';
 
@@ -19,7 +19,7 @@ registerBlockType( blockTypeName, {
 	icon: {
 		src: (
 			<Icon
-				icon={ category }
+				srcElement={ tags }
 				className="wc-block-editor-components-block-icon"
 			/>
 		),
@@ -78,7 +78,6 @@ registerBlockType( blockTypeName, {
 		contentVisibility: {
 			type: 'object',
 			default: {
-				image: true,
 				title: true,
 				price: true,
 				rating: true,

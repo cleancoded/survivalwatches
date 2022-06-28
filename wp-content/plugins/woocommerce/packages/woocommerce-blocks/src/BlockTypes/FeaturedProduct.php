@@ -1,8 +1,6 @@
 <?php
 namespace Automattic\WooCommerce\Blocks\BlockTypes;
 
-use Automattic\WooCommerce\Blocks\Utils\StyleAttributesUtils;
-
 /**
  * FeaturedProduct class.
  */
@@ -15,43 +13,21 @@ class FeaturedProduct extends AbstractDynamicBlock {
 	protected $block_name = 'featured-product';
 
 	/**
-	 * Default attribute values.
+	 * Default attribute values, should match what's set in JS `registerBlockType`.
 	 *
 	 * @var array
 	 */
 	protected $defaults = array(
-		'align' => 'none',
+		'align'        => 'none',
+		'contentAlign' => 'center',
+		'dimRatio'     => 50,
+		'focalPoint'   => false,
+		'height'       => false,
+		'mediaId'      => 0,
+		'mediaSrc'     => '',
+		'showDesc'     => true,
+		'showPrice'    => true,
 	);
-
-	/**
-	 * Global style enabled for this block.
-	 *
-	 * @var array
-	 */
-	protected $global_style_wrapper = array(
-		'text_color',
-		'font_size',
-		'border_color',
-		'border_radius',
-		'border_width',
-		'background_color',
-		'text_color',
-		'padding',
-	);
-
-	/**
-	 * Get the supports array for this block type.
-	 *
-	 * @see $this->register_block_type()
-	 * @return string;
-	 */
-	protected function get_block_type_supports() {
-		return array(
-			'color' => array(
-				'__experimentalDuotone' => '.wc-block-featured-product__background-image',
-			),
-		);
-	}
 
 	/**
 	 * Render the Featured Product block.
@@ -68,7 +44,7 @@ class FeaturedProduct extends AbstractDynamicBlock {
 		}
 		$attributes = wp_parse_args( $attributes, $this->defaults );
 
-		$attributes['height'] = isset( $attributes['height'] ) ? $attributes['height'] : wc_get_theme_support( 'featured_block::default_height', 500 );
+		$attributes['height'] = $attributes['height'] ? $attributes['height'] : wc_get_theme_support( 'featured_block::default_height', 500 );
 
 		$title = sprintf(
 			'<h2 class="wc-block-featured-product__title">%s</h2>',
@@ -92,13 +68,8 @@ class FeaturedProduct extends AbstractDynamicBlock {
 			wp_kses_post( $product->get_price_html() )
 		);
 
-		$styles  = $this->get_styles( $attributes );
-		$classes = $this->get_classes( $attributes );
-
-		$output  = sprintf( '<div class="%1$s wp-block-woocommerce-featured-product" style="%2$s">', esc_attr( trim( $classes ) ), esc_attr( $styles ) );
+		$output  = sprintf( '<div class="%1$s" style="%2$s">', esc_attr( $this->get_classes( $attributes ) ), esc_attr( $this->get_styles( $attributes, $product ) ) );
 		$output .= '<div class="wc-block-featured-product__wrapper">';
-		$output .= $this->render_overlay( $attributes );
-		$output .= $this->render_image( $attributes, $product );
 		$output .= $title;
 		if ( $attributes['showDesc'] ) {
 			$output .= $desc_str;
@@ -114,21 +85,18 @@ class FeaturedProduct extends AbstractDynamicBlock {
 	}
 
 	/**
-	 * Renders the featured image
+	 * Get the styles for the wrapper element (background image, color).
 	 *
 	 * @param array       $attributes Block attributes. Default empty array.
 	 * @param \WC_Product $product Product object.
-	 *
 	 * @return string
 	 */
-	private function render_image( $attributes, $product ) {
+	public function get_styles( $attributes, $product ) {
 		$style      = '';
 		$image_size = 'large';
 		if ( 'none' !== $attributes['align'] || $attributes['height'] > 800 ) {
 			$image_size = 'full';
 		}
-
-		$style .= sprintf( 'object-fit: %s;', $attributes['imageFit'] );
 
 		if ( $attributes['mediaId'] ) {
 			$image = wp_get_attachment_image_url( $attributes['mediaId'], $image_size );
@@ -136,65 +104,25 @@ class FeaturedProduct extends AbstractDynamicBlock {
 			$image = $this->get_image( $product, $image_size );
 		}
 
+		if ( ! empty( $image ) ) {
+			$style .= sprintf( 'background-image:url(%s);', esc_url( $image ) );
+		}
+
+		if ( isset( $attributes['customOverlayColor'] ) ) {
+			$style .= sprintf( 'background-color:%s;', esc_attr( $attributes['customOverlayColor'] ) );
+		}
+
+		if ( isset( $attributes['height'] ) ) {
+			$style .= sprintf( 'min-height:%dpx;', intval( $attributes['height'] ) );
+		}
+
 		if ( is_array( $attributes['focalPoint'] ) && 2 === count( $attributes['focalPoint'] ) ) {
 			$style .= sprintf(
-				'object-position: %s%% %s%%;',
+				'background-position: %s%% %s%%',
 				$attributes['focalPoint']['x'] * 100,
 				$attributes['focalPoint']['y'] * 100
 			);
 		}
-
-		if ( ! empty( $image ) ) {
-			return sprintf(
-				'<img alt="%1$s" class="wc-block-featured-product__background-image" src="%2$s" style="%3$s" />',
-				wp_kses_post( $attributes['alt'] ?: $product->get_name() ),
-				esc_url( $image ),
-				$style
-			);
-		}
-
-		return '';
-	}
-
-	/**
-	 * Renders the block overlay
-	 *
-	 * @param array $attributes Block attributes. Default empty array.
-	 *
-	 * @return string
-	 */
-	private function render_overlay( $attributes ) {
-		$overlay_styles = '';
-
-		if ( isset( $attributes['overlayColor'] ) ) {
-			$overlay_styles = sprintf( 'background-color: %s', $attributes['overlayColor'] );
-		} elseif ( isset( $attributes['overlayGradient'] ) ) {
-			$overlay_styles = sprintf( 'background-image: %s', $attributes['overlayGradient'] );
-		} else {
-			$overlay_styles = 'background-color: #000000';
-		}
-
-		return sprintf( '<div class="wc-block-featured-product__overlay" style="%s"></div>', esc_attr( $overlay_styles ) );
-	}
-
-	/**
-	 * Get the styles for the wrapper element (background image, color).
-	 *
-	 * @param array $attributes Block attributes. Default empty array.
-	 *
-	 * @return string
-	 */
-	public function get_styles( $attributes ) {
-		$style = '';
-
-		$min_height = isset( $attributes['minHeight'] ) ? $attributes['minHeight'] : wc_get_theme_support( 'featured_block::default_height', 500 );
-
-		if ( isset( $attributes['minHeight'] ) ) {
-			$style .= sprintf( 'min-height:%dpx;', intval( $min_height ) );
-		}
-
-		$global_style_style = StyleAttributesUtils::get_styles_by_attributes( $attributes, $this->global_style_wrapper );
-		$style             .= $global_style_style;
 
 		return $style;
 	}
@@ -224,12 +152,13 @@ class FeaturedProduct extends AbstractDynamicBlock {
 			$classes[] = "has-{$attributes['contentAlign']}-content";
 		}
 
+		if ( isset( $attributes['overlayColor'] ) ) {
+			$classes[] = "has-{$attributes['overlayColor']}-background-color";
+		}
+
 		if ( isset( $attributes['className'] ) ) {
 			$classes[] = $attributes['className'];
 		}
-
-		$global_style_classes = StyleAttributesUtils::get_classes_by_attributes( $attributes, $this->global_style_wrapper );
-		$classes[]            = $global_style_classes;
 
 		return implode( ' ', $classes );
 	}

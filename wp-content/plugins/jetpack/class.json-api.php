@@ -248,13 +248,12 @@ class WPCOM_JSON_API {
 	 */
 	public function setup_inputs( $method = null, $url = null, $post_body = null ) {
 		if ( $method === null ) {
-			$this->method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( filter_var( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : '';
+			$this->method = strtoupper( $_SERVER['REQUEST_METHOD'] );
 		} else {
 			$this->method = strtoupper( $method );
 		}
 		if ( $url === null ) {
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sniff misses the esc_url_raw.
-			$this->url = esc_url_raw( set_url_scheme( 'http://' . ( isset( $_SERVER['HTTP_HOST'] ) ? wp_unslash( $_SERVER['HTTP_HOST'] ) : '' ) . ( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '' ) ) );
+			$this->url = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] );
 		} else {
 			$this->url = $url;
 		}
@@ -268,18 +267,18 @@ class WPCOM_JSON_API {
 			wp_parse_str( $parsed['query'], $this->query );
 		}
 
-		if ( ! empty( $_SERVER['HTTP_ACCEPT'] ) ) {
-			$this->accept = filter_var( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) );
+		if ( isset( $_SERVER['HTTP_ACCEPT'] ) && $_SERVER['HTTP_ACCEPT'] ) {
+			$this->accept = $_SERVER['HTTP_ACCEPT'];
 		}
 
 		if ( 'POST' === $this->method ) {
 			if ( $post_body === null ) {
 				$this->post_body = file_get_contents( 'php://input' );
 
-				if ( ! empty( $_SERVER['HTTP_CONTENT_TYPE'] ) ) {
-					$this->content_type = filter_var( wp_unslash( $_SERVER['HTTP_CONTENT_TYPE'] ) );
-				} elseif ( ! empty( $_SERVER['CONTENT_TYPE'] ) ) {
-					$this->content_type = filter_var( wp_unslash( $_SERVER['CONTENT_TYPE'] ) );
+				if ( isset( $_SERVER['HTTP_CONTENT_TYPE'] ) && $_SERVER['HTTP_CONTENT_TYPE'] ) {
+					$this->content_type = $_SERVER['HTTP_CONTENT_TYPE'];
+				} elseif ( isset( $_SERVER['CONTENT_TYPE'] ) && $_SERVER['CONTENT_TYPE'] ) {
+					$this->content_type = $_SERVER['CONTENT_TYPE'];
 				} elseif ( '{' === $this->post_body[0] ) {
 					$this->content_type = 'application/json';
 				} else {
@@ -301,7 +300,7 @@ class WPCOM_JSON_API {
 			$this->content_type = null;
 		}
 
-		$this->_server_https = array_key_exists( 'HTTPS', $_SERVER ) ? filter_var( wp_unslash( $_SERVER['HTTPS'] ) ) : '--UNset--';
+		$this->_server_https = array_key_exists( 'HTTPS', $_SERVER ) ? $_SERVER['HTTPS'] : '--UNset--';
 	}
 
 	/**

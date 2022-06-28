@@ -2,9 +2,9 @@
  * External dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { createBlock, registerBlockType } from '@wordpress/blocks';
+import { registerBlockType } from '@wordpress/blocks';
 import classNames from 'classnames';
-import { Icon, currencyDollar } from '@wordpress/icons';
+import { Icon, bill } from '@woocommerce/icons';
 import { isFeaturePluginBuild } from '@woocommerce/block-settings';
 import { useBlockProps } from '@wordpress/block-editor';
 
@@ -19,7 +19,7 @@ registerBlockType( 'woocommerce/price-filter', {
 	icon: {
 		src: (
 			<Icon
-				icon={ currencyDollar }
+				srcElement={ bill }
 				className="wc-block-editor-components-block-icon"
 			/>
 		),
@@ -64,30 +64,10 @@ registerBlockType( 'woocommerce/price-filter', {
 			default: 3,
 		},
 	},
-	transforms: {
-		from: [
-			{
-				type: 'block',
-				blocks: [ 'core/legacy-widget' ],
-				// We can't transform if raw instance isn't shown in the REST API.
-				isMatch: ( { idBase, instance } ) =>
-					idBase === 'woocommerce_price_filter' && !! instance?.raw,
-				transform: ( { instance } ) =>
-					createBlock( 'woocommerce/price-filter', {
-						showInputFields: false,
-						showFilterButton: true,
-						heading:
-							instance?.raw?.title ||
-							__(
-								'Filter by price',
-								'woocommerce'
-							),
-						headingLevel: 3,
-					} ),
-			},
-		],
-	},
+
 	edit,
+
+	// Save the props to post content.
 	save( { attributes } ) {
 		const {
 			className,

@@ -266,19 +266,17 @@ class Waf_Runtime {
 		$log_data['reason']    = $reason;
 		$log_data['timestamp'] = gmdate( 'Y-m-d H:i:s' );
 
-		if ( defined( 'JETPACK_WAF_SHARE_DATA' ) && JETPACK_WAF_SHARE_DATA ) {
-			$file_path   = JETPACK_WAF_DIR . '/waf-blocklog';
-			$file_exists = file_exists( $file_path );
+		$file_path   = JETPACK_WAF_DIR . '/waf-blocklog';
+		$file_exists = file_exists( $file_path );
 
-			if ( ! $file_exists || filesize( $file_path ) < ( 100 * 1024 * 1024 ) ) {
-				$fp = fopen( $file_path, 'a+' );
+		if ( ! $file_exists || filesize( $file_path ) < ( 100 * 1024 * 1024 ) ) {
+			$fp = fopen( $file_path, 'a+' );
 
-				if ( $fp ) {
-					try {
-						fwrite( $fp, json_encode( $log_data ) . "\n" );
-					} finally {
-						fclose( $fp );
-					}
+			if ( $fp ) {
+				try {
+					fwrite( $fp, json_encode( $log_data ) . "\n" );
+				} finally {
+					fclose( $fp );
 				}
 			}
 		}

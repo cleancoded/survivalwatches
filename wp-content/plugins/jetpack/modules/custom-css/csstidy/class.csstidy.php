@@ -943,11 +943,7 @@ class csstidy { // phpcs:ignore
 						}
 
 						if ( 'iv' === $this->status ) {
-							// phpcs:disable Squiz.PHP.CommentedOutCode.Found, Squiz.Commenting.BlockComment.NoNewLine
-							// WPCOM hack: prevents CSSTidy from removing spaces after commas inside
-							// declaration's values.
-							// For more information, see D74626-code.
-							/*if ( ! $_quoted_string ) {
+							if ( ! $_quoted_string ) {
 								if ( strpos( $_cur_string, ',' ) !== false ) {
 									// we can on only remove space next to ','.
 									$_cur_string = implode( ',', array_map( 'trim', explode( ',', $_cur_string ) ) );
@@ -956,8 +952,7 @@ class csstidy { // phpcs:ignore
 								if ( strpos( $_cur_string, '  ' ) !== false ) {
 									$_cur_string = preg_replace( ',\s+,', ' ', $_cur_string );
 								}
-							}*/
-							// phpcs:enable Squiz.PHP.CommentedOutCode.Found, Squiz.Commenting.BlockComment.NoNewLine
+							}
 							$this->sub_value .= $_cur_string;
 						} elseif ( 'is' === $this->status ) {
 							$this->selector .= $_cur_string;

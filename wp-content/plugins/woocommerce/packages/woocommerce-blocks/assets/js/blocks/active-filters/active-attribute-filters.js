@@ -7,23 +7,21 @@ import {
 } from '@woocommerce/base-context/hooks';
 import { decodeEntities } from '@wordpress/html-entities';
 import { __ } from '@wordpress/i18n';
-import { getSettingWithCoercion } from '@woocommerce/settings';
-import { isBoolean } from '@woocommerce/types';
 
 /**
  * Internal dependencies
  */
-import { renderRemovableListItem, removeArgsFromFilterUrl } from './utils';
+import { renderRemovableListItem } from './utils';
 import { removeAttributeFilterBySlug } from '../../utils/attributes-query';
 
 /**
  * Component that renders active attribute (terms) filters.
  *
- * @param {Object} props                 Incoming props for the component.
+ * @param {Object} props Incoming props for the component.
  * @param {Object} props.attributeObject The attribute object.
- * @param {Array}  props.slugs           The slugs for attributes.
- * @param {string} props.operator        The operator for the filter.
- * @param {string} props.displayStyle    The style used for displaying the filters.
+ * @param {Array} props.slugs The slugs for attributes.
+ * @param {string} props.operator The operator for the filter.
+ * @param {string} props.displayStyle The style used for displaying the filters.
  */
 const ActiveAttributeFilters = ( {
 	attributeObject = {},
@@ -32,7 +30,7 @@ const ActiveAttributeFilters = ( {
 	displayStyle,
 } ) => {
 	const { results, isLoading } = useCollection( {
-		namespace: '/wc/store/v1',
+		namespace: '/wc/store',
 		resourceName: 'products/attributes/terms',
 		resourceValues: [ attributeObject.id ],
 	} );
@@ -47,12 +45,6 @@ const ActiveAttributeFilters = ( {
 	}
 
 	const attributeLabel = attributeObject.label;
-
-	const filteringForPhpTemplate = getSettingWithCoercion(
-		'is_rendering_php_template',
-		false,
-		isBoolean
-	);
 
 	return (
 		<li>
@@ -84,26 +76,6 @@ const ActiveAttributeFilters = ( {
 						name: decodeEntities( termObject.name || slug ),
 						prefix,
 						removeCallback: () => {
-							if ( filteringForPhpTemplate ) {
-								const currentAttribute = productAttributes.find(
-									( { attribute } ) =>
-										attribute ===
-										`pa_${ attributeObject.name }`
-								);
-
-								// If only one attribute was selected, we remove both filter and query type from the URL.
-								if ( currentAttribute.slug.length === 1 ) {
-									return removeArgsFromFilterUrl(
-										`query_type_${ attributeObject.name }`,
-										`filter_${ attributeObject.name }`
-									);
-								}
-
-								// Remove only the slug from the URL.
-								return removeArgsFromFilterUrl( {
-									[ `filter_${ attributeObject.name }` ]: slug,
-								} );
-							}
 							removeAttributeFilterBySlug(
 								productAttributes,
 								setProductAttributes,
