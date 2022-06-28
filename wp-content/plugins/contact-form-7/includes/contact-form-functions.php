@@ -39,19 +39,19 @@ function wpcf7_is_posted() {
 	return $contact_form->is_posted();
 }
 
-function wpcf7_get_hangover( $name, $default_value = null ) {
+function wpcf7_get_hangover( $name, $default = null ) {
 	if ( ! wpcf7_is_posted() ) {
-		return $default_value;
+		return $default;
 	}
 
 	$submission = WPCF7_Submission::get_instance();
 
 	if ( ! $submission
 	or $submission->is( 'mail_sent' ) ) {
-		return $default_value;
+		return $default;
 	}
 
-	return isset( $_POST[$name] ) ? wp_unslash( $_POST[$name] ) : $default_value;
+	return isset( $_POST[$name] ) ? wp_unslash( $_POST[$name] ) : $default;
 }
 
 function wpcf7_get_validation_error( $name ) {
@@ -82,11 +82,11 @@ function wpcf7_get_message( $status ) {
 	return $contact_form->message( $status );
 }
 
-function wpcf7_form_controls_class( $type, $default_classes = '' ) {
+function wpcf7_form_controls_class( $type, $default = '' ) {
 	$type = trim( $type );
-	$default_classes = array_filter( explode( ' ', $default_classes ) );
+	$default = array_filter( explode( ' ', $default ) );
 
-	$classes = array_merge( array( 'wpcf7-form-control' ), $default_classes );
+	$classes = array_merge( array( 'wpcf7-form-control' ), $default );
 
 	$typebase = rtrim( $type, '*' );
 	$required = ( '*' == substr( $type, -1 ) );
@@ -216,9 +216,9 @@ function wpcf7_save_contact_form( $args = '', $context = 'save' ) {
 	return $contact_form;
 }
 
-function wpcf7_sanitize_form( $input, $default_template = '' ) {
+function wpcf7_sanitize_form( $input, $default = '' ) {
 	if ( null === $input ) {
-		return $default_template;
+		return $default;
 	}
 
 	$output = trim( $input );
@@ -291,9 +291,9 @@ function wpcf7_sanitize_messages( $input, $defaults = array() ) {
 	return $output;
 }
 
-function wpcf7_sanitize_additional_settings( $input, $default_template = '' ) {
+function wpcf7_sanitize_additional_settings( $input, $default = '' ) {
 	if ( null === $input ) {
-		return $default_template;
+		return $default;
 	}
 
 	$output = trim( $input );
